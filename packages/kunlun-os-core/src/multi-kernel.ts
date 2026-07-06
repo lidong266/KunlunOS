@@ -161,6 +161,9 @@ export class MultiKernelOrchestrator {
 
     // ── Reduce 阶段: 主Pi综合 ──
     const allResults = await collector.waitAll();
+    const subResultsText = allResults
+      .map((text, i) => `### 子任务${i + 1}: ${subTasks[i]!.prompt}\n${text}`)
+      .join('\n\n');
 
     const reduceInput = reducePrompt
       ? `${reducePrompt}\n\n${subResultsText}`

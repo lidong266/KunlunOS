@@ -15,6 +15,7 @@
   "bin": {
     "kl": "./bin/kunlun.mjs"
   },
+  "scripts": {
     "build": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"

@@ -188,13 +188,14 @@ export class SharedCognitiveLayer {
   }
 
   /** 查询记忆 */
-  queryMemory(keyword: string, limit = 5): MemoryEntry[] {
-    return this.memory.search(keyword, limit);
+  queryMemory(keyword: string): MemoryEntry[] {
+    return this.memory.search(keyword);
   }
 
   /** 获取共鸣记忆 */
   getResonantMemories(entryId: string): MemoryEntry[] {
-    return this.resonance.getResonant(entryId);
+    const event = this.resonance.resonate(entryId);
+    return event ? this.memory.getAllMemories().filter(m => event.resonatedIds.includes(m.id)) : [];
   }
 
   // ═══════════════════════════════════════════════════════════

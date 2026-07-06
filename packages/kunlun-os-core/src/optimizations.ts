@@ -127,8 +127,8 @@ export class CognitivePrefetcher {
     };
 
     // 从共享记忆检索相关内容
-    const memories = this.shared.queryMemory(query, 3);
-    ctx.memoryIds = memories.map(m => m.id);
+    const memories = this.shared.queryMemory(query);
+    ctx.memoryIds = memories.slice(0, 3).map(m => m.id);
 
     return ctx;
   }
