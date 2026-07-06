@@ -300,6 +300,88 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@26.1.0)
 
+  packages/kunlun-os-core:
+    dependencies:
+      '@earendil-works/pi-ai':
+        specifier: ^0.80.3
+        version: 0.80.3(ws@8.21.0)(zod@4.4.3)
+      '@kunlun/cog-algo':
+        specifier: workspace:*
+        version: link:../kunlun-cog-algo
+      '@kunlun/cog-capability':
+        specifier: workspace:*
+        version: link:../kunlun-cog-capability
+      '@kunlun/cog-executor':
+        specifier: workspace:*
+        version: link:../kunlun-cog-executor
+      '@kunlun/cog-human':
+        specifier: workspace:*
+        version: link:../kunlun-cog-human
+      '@kunlun/cog-memory':
+        specifier: workspace:*
+        version: link:../kunlun-cog-memory
+      '@kunlun/cog-metasynthesis':
+        specifier: workspace:*
+        version: link:../kunlun-cog-metasynthesis
+      '@kunlun/cog-pipeline':
+        specifier: workspace:*
+        version: link:../kunlun-cog-pipeline
+      '@kunlun/cog-process':
+        specifier: workspace:*
+        version: link:../kunlun-cog-process
+      '@kunlun/cog-trust':
+        specifier: workspace:*
+        version: link:../kunlun-cog-trust
+      '@kunlun/cogbus':
+        specifier: workspace:*
+        version: link:../kunlun-cogbus
+      '@kunlun/cogkal':
+        specifier: workspace:*
+        version: link:../kunlun-cogkal
+      '@kunlun/contradiction':
+        specifier: workspace:*
+        version: link:../kunlun-contradiction
+      '@kunlun/eventbus':
+        specifier: workspace:*
+        version: link:../kunlun-eventbus
+      '@kunlun/ocgs':
+        specifier: workspace:*
+        version: link:../kunlun-ocgs
+      '@kunlun/pi-agent-core':
+        specifier: workspace:*
+        version: link:../../fork/packages/agent
+      '@kunlun/presence':
+        specifier: workspace:*
+        version: link:../kunlun-presence
+      '@kunlun/pw':
+        specifier: workspace:*
+        version: link:../kunlun-pw
+      '@kunlun/spiral':
+        specifier: workspace:*
+        version: link:../kunlun-spiral
+      '@kunlun/subsystems':
+        specifier: workspace:*
+        version: link:../kunlun-subsystems
+      '@kunlun/ternary':
+        specifier: workspace:*
+        version: link:../kunlun-ternary
+      ignore:
+        specifier: 7.0.5
+        version: 7.0.5
+      typebox:
+        specifier: 1.1.38
+        version: 1.1.38
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
+    devDependencies:
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@26.1.0)
+
   packages/kunlun-presence:
     dependencies:
       '@kunlun/eventbus':

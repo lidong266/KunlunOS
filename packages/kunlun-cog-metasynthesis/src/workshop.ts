@@ -54,7 +54,7 @@ export class MetaSynthesisWorkshop {
   }
 
   /** 收敛：综合意见与反驳，形成最终结论 */
-  async converge(): SynthesisResult {
+  async converge(): Promise<SynthesisResult> {
     // 合并原始意见和反驳意见
     const allViews = [...this.opinions, ...this.rebuttals];
     const quantitative = this.engine.quantitativeAnalysis(allViews);
