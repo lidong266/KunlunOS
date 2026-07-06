@@ -25,6 +25,7 @@ import type { AssistantMessage } from '@earendil-works/pi-ai';
 import type { KunlunAnalysis } from './kunlun-os.js';
 import { SharedCognitiveLayer } from './shared-layer.js';
 import type { SharedLayerConfig } from './shared-layer.js';
+import { CognitivePrefetcher, StreamReduceCollector } from './optimizations.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 子任务
@@ -65,6 +66,8 @@ export class MultiKernelOrchestrator {
   private multiInstance: CogMultiInstanceManager;
   /** 共享认知层（所有 Pi 共享 Token/缓存/记忆） */
   readonly shared: SharedCognitiveLayer;
+  /** 认知预取器 */
+  private prefetcher: CognitivePrefetcher;
   /** 主 Pi */
   private main: KunlunAgent;
   /** 工作 Pi 池 */
@@ -79,6 +82,7 @@ export class MultiKernelOrchestrator {
     this.scheduler = new CogScheduler();
     this.multiInstance = new CogMultiInstanceManager(this.scheduler);
     this.shared = new SharedCognitiveLayer(sharedConfig);
+    this.prefetcher = new CognitivePrefetcher(this.shared);
     this.main = new KunlunAgent(options);
   }
 
@@ -127,20 +131,36 @@ export class MultiKernelOrchestrator {
   }> {
     const startTime = Date.now();
 
-    // ── Map 阶段: N 个 Pi 并行执行 ──
+    // 生成预取注入文本（从 shared 层获取）
+    const cachedAnalysis = this.shared.getCachedAnalysis(query);
+    const prefetchInjection = cachedAnalysis
+      ? this.prefetcher.formatPrefetchPrompt(
+          this.prefetcher.buildPrefetchContext(query, cachedAnalysis)
+        )
+      : '';
+
+    // ── Map 阶段: N个Pi并行，注入共享上下文 ──
+    const collector = new StreamReduceCollector(subTasks.length);
     const subResults = await Promise.all(
       subTasks.map(async (task, index) => {
         const worker = this.workers[index % this.workers.length]!;
-        const result = await worker.harness.prompt(task.prompt);
+
+        // 注入预取上下文 → 子Pi不需要各自检索
+        const enhancedPrompt = prefetchInjection
+          ? `${task.systemPrompt ?? ''}\n${prefetchInjection}\n\n问题: ${task.prompt}`
+          : task.prompt;
+
+        const result = await worker.harness.prompt(enhancedPrompt);
         const analysis = worker.getLatestAnalysis();
-        return { taskId: task.id, result, analysis: analysis ?? undefined };
+
+        const sr: SubTaskResult = { taskId: task.id, result, analysis: analysis ?? undefined };
+        collector.collect(index, extractText(result));
+        return sr;
       })
     );
 
-    // ── Reduce 阶段: 主 Pi 综合 ──
-    const subResultsText = subResults
-      .map((r, i) => `### 子任务${i + 1}: ${subTasks[i]!.prompt}\n${extractText(r.result)}`)
-      .join('\n\n');
+    // ── Reduce 阶段: 主Pi综合 ──
+    const allResults = await collector.waitAll();
 
     const reduceInput = reducePrompt
       ? `${reducePrompt}\n\n${subResultsText}`
