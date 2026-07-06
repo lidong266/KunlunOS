@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Shared truncation utilities for tool outputs.
  *

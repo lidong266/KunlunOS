@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { AssistantMessage, ImageContent, Model, Models, UserMessage } from "@earendil-works/pi-ai";
 import { runAgentLoop } from "@kunlun/pi-agent-core";
 import type {

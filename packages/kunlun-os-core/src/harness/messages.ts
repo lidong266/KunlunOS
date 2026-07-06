@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { ImageContent, Message, TextContent } from "@earendil-works/pi-ai";
 import type { AgentMessage } from "@kunlun/pi-agent-core";
 

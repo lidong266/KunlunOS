@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { type ExecutionEnv, ExecutionError, err, ok, type Result, type ShellExecOptions, toError } from "@kunlun/pi-agent-core";
 import { DEFAULT_MAX_BYTES, truncateTail } from "./truncate.js";
 

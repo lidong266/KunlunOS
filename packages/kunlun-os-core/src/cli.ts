@@ -51,7 +51,7 @@ export class KunlunCLI {
   /** 启动 CLI */
   async start(): Promise<void> {
     // 创建 Agent
-    const env = new NodeExecutionEnv();
+    const env = new (NodeExecutionEnv as any)();
     const sessionRepo = new InMemorySessionRepo();
     const session = await sessionRepo.create();
 

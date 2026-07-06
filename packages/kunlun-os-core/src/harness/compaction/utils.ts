@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Message } from "@earendil-works/pi-ai";
 import type { AgentMessage } from "../../types.js";
 

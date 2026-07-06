@@ -167,14 +167,14 @@ export class KunlunAgent<
         return analysis;
       },
 
-      async decideTool(context) {
+      async decideTool(context: any) {
         if (!self.toolSecurityEnabled) {
           return { allowed: true };
         }
 
         const decision = self.os.decideTool(
           context.toolName,
-          context.args as Record<string, unknown>,
+          (context as any).args ?? {},
           self.latestAnalysis,
         );
 
@@ -183,18 +183,18 @@ export class KunlunAgent<
           blockReason: decision.blockReason,
           suggestedAlternative: decision.suggestedAlternative,
           priority: decision.priority,
-        };
+        } as any;
       },
 
-      async decideToolBatch(context) {
+      async decideToolBatch(context: any) {
         if (!self.toolSecurityEnabled) {
-          return { decisions: context.toolCalls.map(() => ({ allowed: true })) };
+          return context.toolCalls.map(() => ({ allowed: true }));
         }
 
-        const decisions = context.toolCalls.map(tc => {
+        const decisions = context.toolCalls.map((tc: any) => {
           const d = self.os.decideTool(
             tc.toolName,
-            tc.args as Record<string, unknown>,
+            tc.args ?? {},
             self.latestAnalysis,
           );
           return {

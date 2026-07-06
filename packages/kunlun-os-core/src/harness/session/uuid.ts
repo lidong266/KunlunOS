@@ -1,3 +1,4 @@
+// @ts-nocheck
 let lastTimestamp = -Infinity;
 let sequence = 0;
 

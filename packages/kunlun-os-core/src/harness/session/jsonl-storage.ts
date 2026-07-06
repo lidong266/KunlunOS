@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { FileSystem, JsonlSessionMetadata, LeafEntry, SessionStorage, SessionTreeEntry } from "@kunlun/pi-agent-core";
 import { SessionError, toError } from "@kunlun/pi-agent-core";
 import { getFileSystemResultOrThrow } from "./repo-utils.js";

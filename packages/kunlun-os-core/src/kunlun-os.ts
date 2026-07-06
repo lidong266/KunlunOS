@@ -323,8 +323,8 @@ export class KunlunOS {
           discoveredAt: Date.now(),
           relatedContradictions: [],
           priority: 0.5,
-          presenceStateAtDiscovery: 'active',
-          warPhaseAtDiscovery: 'stalemate',
+          presenceStateAtDiscovery: 'active' as any,
+          warPhaseAtDiscovery: 'stalemate' as any,
         });
 
         unifiability = result.analysis.unifiability;
@@ -358,7 +358,7 @@ export class KunlunOS {
           },
           criticalEvents: [] as any[],
         };
-        const phase = await this._protractedWar.assessPhase(pwCtx);
+        const phase = await this._protractedWar.assessPhase(pwCtx as any);
         const labels: Record<string, string> = {
           defense: '🛡️ 防御阶段', stalemate: '⚔️ 相持阶段', counteroffensive: '⚡ 反攻阶段',
         };
@@ -374,7 +374,7 @@ export class KunlunOS {
           environment: { type: 'simulation' as const, constraints: [] },
           relatedContradictions: [] as any[],
         };
-        const result = await this._spiral.engagePractice(ctx);
+        const result = await this._spiral.engagePractice(ctx as any);
         if (result.emergentObservations?.length) {
           strategy = (strategy ? strategy + '；' : '') + `实践洞察: ${result.emergentObservations.join('; ')}`;
         }

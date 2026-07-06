@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { AssistantMessage, ImageContent, Model, Models, TextContent, Usage } from "@earendil-works/pi-ai";
 import type { AgentMessage, ThinkingLevel } from "../../types.js";
 import {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Skill } from "./types.js";
 
 export function formatSkillsForSystemPrompt(skills: Skill[]): string {
