@@ -7,27 +7,42 @@
 [![Node](https://img.shields.io/badge/Node-%3E%3D22-green)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-9.15-orange)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-874%20passing-brightgreen)](.)
+[![Tests](https://img.shields.io/badge/tests-903%20passing-brightgreen)](.)
 [![Build](https://img.shields.io/badge/build-22%20packages-blue)](.)
 
 ---
 
 ## 快速开始
 
+### 方式一：一键安装脚本（推荐）
+
 ```bash
-git clone https://github.com/lidong266/pi-kunlun.git
-cd pi-kunlun
+# 直接下载并运行（自动检查 Node≥22 → 启用 pnpm → 克隆 → 安装 → 验证）
+bash <(curl -fsSL https://raw.githubusercontent.com/lidong266/KunlunOS/main/install.sh)
+
+# 或先克隆再在仓库内运行
+git clone https://github.com/lidong266/KunlunOS.git
+cd KunlunOS
+bash install.sh                 # 也可指定目录: bash install.sh my-app
+```
+
+### 方式二：手动安装
+
+```bash
+git clone https://github.com/lidong266/KunlunOS.git
+cd KunlunOS
 pnpm install
-pnpm test          # 874 tests, 36 files
+pnpm test          # 903 tests, 37 files
 pnpm -r build      # 22 packages
 ```
 
 ### 运行离线认知 CLI（无需 LLM API）
 
 ```bash
-npx tsx packages/kunlun-os-core/bin/kunlun.mjs analyze "性能和成本如何权衡"
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs boot
 ```
 
+在 TTY 终端中运行 `boot` 会显示**鸿蒙6风格的彩色启动动画**（CogBoot 6 阶段引导序列）。
 无需任何 API Key 即可体验昆仑OS 的核心认知能力：十一桥路由 → 矛盾分析 → 综合集成 → 天工渲染。
 
 ```bash
@@ -36,10 +51,12 @@ npx tsx packages/kunlun-os-core/bin/kunlun.mjs analyze "性能和成本如何权
 npx tsx packages/kunlun-os-core/bin/kunlun.mjs contradiction "追求性能" vs "保证成本"  # 矛盾分析引擎（8分析器）
 npx tsx packages/kunlun-os-core/bin/kunlun.mjs bridge "如何设计微服务架构"      # 十一桥路由+知识卡片
 npx tsx packages/kunlun-os-core/bin/kunlun.mjs bridges                          # 列出全部十一桥
-npx tsx packages/kunlun-os-core/bin/kunlun.mjs boot                              # CogBoot 6阶段引导
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs boot                              # CogBoot 6阶段引导（含启动动画）
 npx tsx packages/kunlun-os-core/bin/kunlun.mjs status                            # OS 运行状态
 npx tsx packages/kunlun-os-core/bin/kunlun.mjs                                   # 无 API Key 时进入离线 REPL
 ```
+
+> 启动动画默认开启；非 TTY（管道/脚本）环境自动降级为纯文本。可通过 `KunlunOSConfig.showBootAnim = false` 关闭。
 
 ### 运行 Demo（无需 LLM API）
 
@@ -207,7 +224,7 @@ orch.stop();
 ## 测试
 
 ```bash
-pnpm test                    # 874 tests, 36 files, all passing
+pnpm test                    # 903 tests, 37 files, all passing
 pnpm -r build                # 22 packages
 ```
 
