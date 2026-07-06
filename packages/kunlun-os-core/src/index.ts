@@ -67,6 +67,10 @@ export type {
 export { KunlunAgent, getKunlunAgent, createKunlunAgent } from './kunlun-agent';
 export type { KunlunAgentOptions } from './kunlun-agent';
 
+// ─── 多微内核调度器 ───
+export { MultiKernelOrchestrator, createOrchestrator } from './multi-kernel.js';
+export type { PiKernelDescriptor, KernelPoolConfig } from './multi-kernel.js';
+
 // ─── CLI 入口 ───
 export { KunlunCLI } from './cli';
 
