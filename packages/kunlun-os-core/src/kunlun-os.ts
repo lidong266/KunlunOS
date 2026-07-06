@@ -572,14 +572,42 @@ export class KunlunOS {
       return pairs;
     }
 
-    // 常见矛盾对
+    // "A 与 B 的矛盾/冲突/权衡/取舍" 模式
+    const conflictMatch = query.match(/(.+?)(?:的)(?:矛盾|冲突|权衡|取舍|两难|困境)/);
+    if (conflictMatch) {
+      // 尝试从语境中提取对立面
+      const subject = conflictMatch[1]!.trim();
+      pairs.push({ thesis: `追求${subject}`, antithesis: `避免${subject}带来的代价` });
+      return pairs;
+    }
+
+    // 检测"转型/变革/挑战"暗示的新旧矛盾
+    if (/转型|变革|升级|数字化|智能化/.test(query)) {
+      const entities = query.replace(/[的之]/g, '').split(/[，。,\.\s]+/).filter(s => s.length > 2);
+      if (entities.length >= 2) {
+        pairs.push({ thesis: `推动${entities[0]}`, antithesis: `应对${entities[1] || '阻力'}` });
+      } else {
+        pairs.push({ thesis: '变革创新', antithesis: '维持稳定' });
+      }
+      return pairs;
+    }
+
+    // 常见矛盾对（扩展版，增加覆盖）
     const patterns: Array<[string, string, string[]]> = [
       ['性能', '成本', ['性能', '成本']],
       ['效率', '质量', ['效率', '质量']],
       ['创新', '稳定', ['创新', '稳定']],
-      ['安全', '便捷', ['安全', '便捷']],
+      ['安全', '便捷', ['安全', '便捷', '效率']],
       ['开放', '控制', ['开放', '管控']],
       ['速度', '质量', ['快', '好', '速度', '质量']],
+      ['集中', '分布', ['集中', '分布', '单体', '微服务']],
+      ['短期', '长期', ['短期', '长期', '当下', '未来']],
+      ['个性化', '规模化', ['个性', '规模', '定制', '标准']],
+      ['探索', '利用', ['探索', '利用', '创新', '优化']],
+      ['自主', '协同', ['自主', '协同', '独立', '合作']],
+      ['简单', '复杂', ['简单', '复杂', '简洁', '丰富']],
+      ['技术', '业务', ['技术', '业务']],
+      ['数据', '隐私', ['数据', '隐私']],
     ];
 
     for (const [a, b, keywords] of patterns) {

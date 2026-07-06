@@ -60,7 +60,7 @@ export const ELEVEN_BRIDGES: BridgeProfile[] = [
   {
     id: 'Q01', name: '自然辩证法', en: 'Dialectics of Nature', icon: '🔬',
     axiom: '物质第一性·意识第二性',
-    keywords: ['物理', '化学', '生物', '自然', '物质', '能量', '科学实验', '客观规律', 'nature', 'physics', 'chemistry', 'biology'],
+    keywords: ['物理', '化学', '生物', '自然', '物质', '能量', '科学实验', '客观规律', '性能', '效率', '优化', '测量', '指标', 'nature', 'physics', 'chemistry', 'biology', 'performance', 'efficiency', 'optimization'],
     cards: [
       { id: 'AX-001', bridgeId: 'Q01', layer: '基础学科', type: 'AX', title: '物质第一性·意识第二性', content: '物质决定意识，意识对物质有能动反作用。分析任何系统时，先问物质基础（资源/约束/条件），再问意识上层（认知/策略/文化）。', tags: ['ontology', 'materialism'] },
       { id: 'SC-001', bridgeId: 'Q01', layer: '科学技术', type: 'SC', title: '自然科学的三大发现', content: '细胞学说、能量守恒与转化定律、生物进化论——揭示了自然界的辩证统一：一切事物相互联系、运动发展、矛盾转化。', tags: ['science-history', 'dialectics'] },
@@ -70,7 +70,7 @@ export const ELEVEN_BRIDGES: BridgeProfile[] = [
   {
     id: 'Q02', name: '社会科学', en: 'Social Science', icon: '📊',
     axiom: '社会存在决定社会意识',
-    keywords: ['社会', '经济', '政策', '市场', '资本', '阶级', '制度', '文化', 'society', 'economy', 'policy', 'market'],
+    keywords: ['社会', '经济', '政策', '市场', '资本', '阶级', '制度', '文化', '企业', '组织', '成本', '收益', '投资', '预算', '商业', '产业', '金融', '管理', '治理', '人力', '资源分配', 'society', 'economy', 'policy', 'market', 'cost', 'business', 'enterprise'],
     cards: [
       { id: 'AX-002', bridgeId: 'Q02', layer: '基础学科', type: 'AX', title: '社会存在决定社会意识', content: '社会的物质生活条件决定社会思想上层建筑。分析社会现象时：先解剖经济基础（生产关系/生产力），再理解上层建筑（政治/法律/文化）。', tags: ['historical-materialism'] },
       { id: 'SC-002', bridgeId: 'Q02', layer: '科学技术', type: 'SC', title: '政治经济学：生产关系与生产力', content: '生产力发展水平决定生产关系性质，生产关系反作用于生产力。当生产关系从促进转为阻碍时，变革时代到来。', tags: ['political-economy', 'productivity'] },
@@ -90,7 +90,7 @@ export const ELEVEN_BRIDGES: BridgeProfile[] = [
   {
     id: 'Q04', name: '系统科学', en: 'System Science', icon: '🔷',
     axiom: '整体大于部分之和',
-    keywords: ['系统', '架构', '生态', '结构', '组织', '反馈', '涌现', '复杂', 'system', 'architecture', 'ecology', 'complex'],
+    keywords: ['涌现', '反馈回路', '自组织', '耗散结构', '混沌', '分形', '网络效应', '正反馈', '负反馈', 'system dynamics', 'emergence', 'feedback loop', 'complex adaptive'],
     cards: [
       { id: 'AX-004', bridgeId: 'Q04', layer: '基础学科', type: 'AX', title: '整体大于部分之和', content: '系统具有涌现属性，不能通过孤立分析子系统来理解整体。分析时：①圈定系统边界 ②识别反馈回路 ③寻找涌现行为。', tags: ['emergence', 'holism'] },
       { id: 'SC-004', bridgeId: 'Q04', layer: '科学技术', type: 'SC', title: '控制论与反馈回路', content: '任何系统都由正反馈（放大/加速偏离）和负反馈（抑制/保持稳定）回路驱动。分析三问：哪些回路主导？平衡点在哪？时滞多长？', tags: ['cybernetics', 'feedback'] },
@@ -160,7 +160,7 @@ export const ELEVEN_BRIDGES: BridgeProfile[] = [
   {
     id: 'Q11', name: '建筑科学', en: 'Architectural Science', icon: '🏗️',
     axiom: '形式追随功能·功能塑造形式',
-    keywords: ['设计', '架构', '工程', '构建', '实现', '模块', '蓝图', 'design', 'architecture', 'engineering', 'build'],
+    keywords: ['设计', '架构', '工程', '构建', '实现', '模块', '蓝图', '微服务', '单体', '分布式', '接口', '组件', '分层', '模块化', 'design', 'architecture', 'engineering', 'build', 'microservice', 'monolith', 'component'],
     cards: [
       { id: 'AX-011', bridgeId: 'Q11', layer: '基础学科', type: 'AX', title: '形式追随功能·功能塑造形式', content: '设计第一性原则：形式服务于功能，但形式一旦确立又反过来约束功能。分析任何人工系统时：当前形式是否满足功能？形式是否成为进化障碍？', tags: ['design-philosophy', 'form-function'] },
       { id: 'SC-011', bridgeId: 'Q11', layer: '科学技术', type: 'SC', title: '环境心理学：空间行为关系', content: '空间环境影响人类行为：空间权力（布局反映权力结构）、领地性（人对空间的主权意识）、隐私调节（根据情境调节社交距离）。', tags: ['environmental-psychology'] },
@@ -175,23 +175,43 @@ export const ELEVEN_BRIDGES: BridgeProfile[] = [
 
 /**
  * 根据文本内容路由到最匹配的学科桥
- * 使用关键词加权匹配，长关键词权重更高
+ * 使用关键词加权匹配，长关键词权重更高，且跨桥关键词有竞争衰减
  */
 export function routeToBridge(text: string): BridgeProfile {
   const lower = text.toLowerCase();
   let bestBridge = ELEVEN_BRIDGES[3]!; // 默认 Q04 系统科学
   let bestScore = 0;
 
+  // 通用高频词（降低权重，避免泛化误匹配）
+  const genericWords = new Set(['系统', '架构', '设计', '结构', '组织', '管理', '优化', '分析', '实现', '构建', '模块', '工程', '复杂']);
+
   for (const bridge of ELEVEN_BRIDGES) {
     let score = 0;
     for (const kw of bridge.keywords) {
       if (lower.includes(kw.toLowerCase())) {
-        score += kw.length; // 长关键词权重更高
+        const baseWeight = kw.length;
+        // 通用词衰减到 30% 权重
+        const weight = genericWords.has(kw) ? baseWeight * 0.3 : baseWeight;
+        score += weight;
       }
     }
     if (score > bestScore) {
       bestScore = score;
       bestBridge = bridge;
+    }
+  }
+
+  // 兜底：如果最高分太低（< 2），尝试关键词组合
+  if (bestScore < 2) {
+    // 检查是否含矛盾/冲突词 → Q02 社会科学
+    if (/矛盾|冲突|权衡|取舍|困境|两难/.test(lower)) {
+      const q02 = ELEVEN_BRIDGES[1]!;
+      return q02;
+    }
+    // 检查是否含学习/反思 → Q05 思维科学
+    if (/学习|反思|认知|思维|推理/.test(lower)) {
+      const q05 = ELEVEN_BRIDGES[4]!;
+      return q05;
     }
   }
 
