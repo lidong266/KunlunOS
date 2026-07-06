@@ -183,17 +183,8 @@ export class SharedCognitiveLayer {
   // ═══════════════════════════════════════════════════════════
 
   /** 写入记忆（所有 Pi 共享） */
-  writeMemory(content: string, associations: string[] = []): MemoryEntry {
-    return this.memory.add({
-      id: `mem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      content,
-      ternaryState: 1,
-      strength: 1,
-      decayRate: 0.01,
-      associations,
-      createdAt: Date.now(),
-      lastReinforced: Date.now(),
-    });
+  writeMemory(content: string, tags: string[] = []): MemoryEntry {
+    return this.memory.store(content, 'kunlun-os', tags);
   }
 
   /** 查询记忆 */
@@ -228,7 +219,7 @@ export class SharedCognitiveLayer {
     return {
       tokens: this.getTokenUsage(),
       cache: this.llmCache.getStats(),
-      memories: this.memory.count(),
+      memories: this.memory.getAllMemories().length,
       analysisCache: this.analysisCache.size,
     };
   }
