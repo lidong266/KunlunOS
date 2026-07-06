@@ -53,7 +53,7 @@ All notable changes to Pi-Kunlun will be documented in this file.
 - **@kunlun/subsystems**: Xuanguan MCP gateway enhanced; Diting/Taiyi/Tiangong interfaces refined
 - All 8 V2 packages: `tsc` build scripts updated with ESM import extension post-processing (`fix-esm-imports.mjs`)
 - Fork build: esbuild `--banner` injects `createRequire` for ESM `process` compatibility
-- Extension `package.json`: fork reference unified to `file:/root/pi-kunlun/fork/packages/agent`
+- Extension `package.json`: fork reference unified to `file:../fork/packages/agent`
 - ESM import resolution: 5 packages had bare imports fixed via post-build script
 
 ### Fixed

@@ -3,7 +3,7 @@
 ## 前置条件
 
 ```bash
-cd /root/pi-kunlun
+# 在项目根目录执行
 pnpm install
 pnpm run build
 ```

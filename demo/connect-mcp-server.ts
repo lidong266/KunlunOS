@@ -3,7 +3,7 @@
  * 演示玄关 (Xuanguan) 如何连接真实 MCP Server 并调用工具
  *
  * 使用方式：
- *   先编译项目：cd /root/pi-kunlun && pnpm run build
+ *   先编译项目：在项目根目录执行 pnpm run build
  *   然后用 tsx 运行：npx tsx demo/connect-mcp-server.ts
  */
 

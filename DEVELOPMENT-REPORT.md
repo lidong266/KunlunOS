@@ -75,7 +75,7 @@
 ## 四、如何运行
 
 ```bash
-cd /workspace/pi-kunlun
+# 在项目根目录执行
 pnpm install
 npx vitest@2.1.9 run  # 828个测试
 ```

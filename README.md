@@ -8,7 +8,7 @@
 [![pnpm](https://img.shields.io/badge/pnpm-9.15-orange)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-853%20passing-brightgreen)](.)
-[![Build](https://img.shields.io/badge/build-22%2F22%20packages-brightgreen)](.)
+[![Build](https://img.shields.io/badge/build-22%20packages-blue)](.)
 
 ---
 
@@ -19,7 +19,7 @@ git clone https://github.com/lidong266/pi-kunlun.git
 cd pi-kunlun
 pnpm install
 pnpm test          # 853 tests, 35 files
-pnpm -r build      # 22/22 packages
+pnpm -r build      # 22 packages
 ```
 
 ### 运行 CLI
@@ -79,7 +79,7 @@ Pi Agent       →  昆仑OS (KunlunOS)      认知操作系统
 │  矛盾论 · 实践论 · 论持久战 · OCGS                        │
 │  三进制数学底座 (+1/0/-1)                                 │
 ├──────────────────────────────────────────────────────────┤
-│  认知基础设施 (12包)                                       │
+│  认知基础设施 (10包)                                       │
 │  CogKAL调度器 / CogBus事件总线 / CogAlgo算法Plugin         │
 │  CogCapability能力注册 / CogTrust信任 / CogMemory记忆      │
 │  CogPipeline七层流 / CogProcess进程 / CogHuman人机          │
@@ -181,7 +181,7 @@ orch.stop();
 
 ```bash
 pnpm test                    # 853 tests, 35 files, all passing
-pnpm -r build                # 22/22 packages build
+pnpm -r build                # 22 packages
 ```
 
 ---

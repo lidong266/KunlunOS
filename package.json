@@ -1,6 +1,6 @@
 {
   "name": "pi-kunlun",
-  "version": "0.1.0",
+  "version": "0.8.9",
   "private": true,
   "description": "Pi-昆仑 V2 — 三进制认知基础设施",
   "scripts": {

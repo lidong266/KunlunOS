@@ -1,6 +1,6 @@
 {
 	"name": "@kunlun/pi-agent-core",
-	"version": "0.80.3",
+	"version": "0.8.9",
 	"description": "Pi-Kunlun V2 — 三进制认知驱动的 Agent 核心 (Fork of pi-agent-core)",
 	"type": "module",
 	"main": "./dist/index.js",

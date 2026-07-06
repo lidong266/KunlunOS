@@ -47,5 +47,14 @@ extension/exports/
 fork/packages/agent/dist/
 **/dist/
 
+# 防止 tsc 产物误入 src 目录
+**/src/**/*.js
+**/src/**/*.js.map
+**/src/**/*.d.ts
+**/src/**/*.d.ts.map
+
+# npm lock (项目使用 pnpm)
+package-lock.json
+
 # 测试临时文件
 *.test-tmp-*
