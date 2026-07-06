@@ -56,6 +56,9 @@ export { defaultOSConfig } from './types';
 export { CogBoot } from './boot';
 export type { BootResult } from './boot';
 
+// ─── 启动动画 ───
+export { BootAnimator } from './boot-animation';
+
 // ─── OS 主类 ───
 export { KunlunOS, getKunlunOS, bootKunlunOS } from './kunlun-os';
 export type {

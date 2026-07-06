@@ -13,6 +13,7 @@
  */
 
 import type { KunlunOSConfig, BootPhaseLog } from './types';
+import { BootAnimator } from './boot-animation';
 
 import { CogScheduler, CogMultiInstanceManager, CogIPC } from '@kunlun/cogkal';
 import { CognEventBus } from '@kunlun/cogbus';
@@ -191,10 +192,34 @@ export class CogBoot {
     }
   }
 
+  // ─── 安全执行阶段（带动画） ────────────────────
+
+  private executePhase(
+    animator: BootAnimator | null,
+    phase: number,
+    name: string,
+    fn: () => void,
+  ): void {
+    animator?.startPhase(phase);
+    try {
+      fn();
+      animator?.completePhase(phase, 'success');
+    } catch (e) {
+      animator?.completePhase(phase, 'error');
+      throw e;
+    }
+  }
+
   // ─── start: 顺序执行所有阶段 ───────────────────
 
   async start(): Promise<BootResult> {
+    const bootStart = Date.now();
     this.logs = [];
+
+    // 启动动画
+    const showAnim = this.config.showBootAnim !== false;
+    const animator = showAnim ? new BootAnimator() : null;
+    animator?.showLogo();
 
     // 实例化所有子系统
     const scheduler = new CogScheduler();
@@ -216,26 +241,39 @@ export class CogBoot {
     const instanceIds: string[] = [];
 
     // Phase 0
-    this.phase0_base();
+    this.executePhase(animator, 0, 'base', () => this.phase0_base());
 
     // Phase 1
-    this.phase1_kernel(scheduler, multiInstance);
-    // 收集已注册实例
-    for (let i = 0; i < this.config.kal.initialInstances; i++) {
-      instanceIds.push(`${this.config.instanceId}-kernel-${i}`);
-    }
+    this.executePhase(animator, 1, 'kernel', () => {
+      this.phase1_kernel(scheduler, multiInstance);
+      for (let i = 0; i < this.config.kal.initialInstances; i++) {
+        instanceIds.push(`${this.config.instanceId}-kernel-${i}`);
+      }
+    });
 
     // Phase 2
-    this.phase2_trust(trustManager);
+    this.executePhase(animator, 2, 'trust', () => this.phase2_trust(trustManager));
 
     // Phase 3
-    this.phase3_capabilities(capabilityRegistry);
+    this.executePhase(animator, 3, 'capabilities', () => this.phase3_capabilities(capabilityRegistry));
 
     // Phase 4
-    this.phase4_bus(bus);
+    this.executePhase(animator, 4, 'bus', () => this.phase4_bus(bus));
 
     // Phase 5
-    this.phase5_algorithms(algoRegistry);
+    this.executePhase(animator, 5, 'algorithms', () => this.phase5_algorithms(algoRegistry));
+
+    const bootDuration = Date.now() - bootStart;
+
+    // 启动完成动画
+    if (animator) {
+      animator.showBootComplete({
+        durationMs: bootDuration,
+        phaseCount: 6,
+        subsystemCount: 13,
+        instanceIds,
+      });
+    }
 
     this.result = {
       scheduler,

@@ -600,3 +600,26 @@ export async function runCognitiveCli(argv: string[]): Promise<number> {
   const args = argv.slice(1);
   return cli.runCommand(cmd, args);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 直接执行入口（CLI 模式）
+// ═══════════════════════════════════════════════════════════════
+
+// 当通过 npx tsx / node 直接运行此文件时自动执行
+// （测试环境 VITEST=true 时跳过快照执行，避免污染测试导致 process.exit）
+if (
+  process.env.VITEST !== 'true' &&
+  process.argv[1] && (
+    process.argv[1].endsWith('.ts') ||
+    process.argv[1].endsWith('.mjs') ||
+    process.argv[1].endsWith('.js')
+  )
+) {
+  const args = process.argv.slice(2);
+  runCognitiveCli(args).then((code) => {
+    process.exit(code);
+  }).catch((err) => {
+    console.error('昆仑OS CLI 启动失败:', err.message);
+    process.exit(1);
+  });
+}

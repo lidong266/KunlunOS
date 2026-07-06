@@ -108,6 +108,8 @@ export interface KunlunOSConfig {
   instanceId: string;
   /** 是否启用详细日志 */
   verbose: boolean;
+  /** 是否显示启动动画（默认 true，可通过 --no-anim 关闭） */
+  showBootAnim?: boolean;
   /** 认知内核调度器配置 */
   kal: CogKALConfig;
   /** 认知总线配置 */
@@ -140,6 +142,7 @@ export function defaultOSConfig(): KunlunOSConfig {
   return {
     instanceId: 'kunlun-os',
     verbose: false,
+    showBootAnim: true,
     kal: {
       initialInstances: 1,
       statsInterval: 0,
