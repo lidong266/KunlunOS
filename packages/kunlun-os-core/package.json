@@ -1,0 +1,45 @@
+{
+  "name": "@kunlun/os-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "昆仑OS Core — 认知操作系统核心",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@kunlun/ternary": "workspace:*",
+    "@kunlun/cogkal": "workspace:*",
+    "@kunlun/cogbus": "workspace:*",
+    "@kunlun/cog-algo": "workspace:*",
+    "@kunlun/cog-capability": "workspace:*",
+    "@kunlun/cog-trust": "workspace:*",
+    "@kunlun/cog-memory": "workspace:*",
+    "@kunlun/cog-pipeline": "workspace:*",
+    "@kunlun/cog-process": "workspace:*",
+    "@kunlun/cog-human": "workspace:*",
+    "@kunlun/cog-metasynthesis": "workspace:*",
+    "@kunlun/cog-executor": "workspace:*",
+    "@kunlun/contradiction": "workspace:*",
+    "@kunlun/spiral": "workspace:*",
+    "@kunlun/pw": "workspace:*",
+    "@kunlun/ocgs": "workspace:*",
+    "@kunlun/eventbus": "workspace:*",
+    "@kunlun/presence": "workspace:*",
+    "@kunlun/subsystems": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.9"
+  }
+}
