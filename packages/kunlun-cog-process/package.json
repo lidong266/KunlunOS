@@ -13,11 +13,12 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@kunlun/ternary": "workspace:*"
+    "@kunlun/ternary": "workspace:*",
+    "@kunlun/cog-pipeline": "workspace:*"
   }
 }

@@ -126,6 +126,9 @@ importers:
 
   packages/kunlun-cog-human:
     dependencies:
+      '@kunlun/cogkal':
+        specifier: workspace:*
+        version: link:../kunlun-cogkal
       '@kunlun/ternary':
         specifier: workspace:*
         version: link:../kunlun-ternary
@@ -150,6 +153,9 @@ importers:
 
   packages/kunlun-cog-process:
     dependencies:
+      '@kunlun/cog-pipeline':
+        specifier: workspace:*
+        version: link:../kunlun-cog-pipeline
       '@kunlun/ternary':
         specifier: workspace:*
         version: link:../kunlun-ternary

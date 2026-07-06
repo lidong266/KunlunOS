@@ -45,7 +45,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && node ../../scripts/fix-esm-imports.mjs ./dist",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/fix-esm-imports.mjs ./dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

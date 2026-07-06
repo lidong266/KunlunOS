@@ -3,6 +3,9 @@ export * from "./agent.js";
 export * from "./agent-loop.js";
 export * from "./types.js";
 
+// ─── 微内核：Agent Harness (运行时框架) ───
+export * from "./harness/types.js";
+
 // ─── 微内核：LLM 代理 ───
 export * from "./proxy.js";
 
