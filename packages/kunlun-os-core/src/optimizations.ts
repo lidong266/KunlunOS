@@ -1,5 +1,5 @@
 /**
- * KunlunOS 多微内核优化方案
+ * KunlunOS 多微内核优化方案 v2
  *
  * 当前: 每个Pi独立agent-loop，互不知晓
  * 优化: 昆仑OS在MapReduce中注入共享上下文 + 预取 + 去重
@@ -14,8 +14,14 @@
  * 优化3: 认知任务预取
  *   injectCognition预测子Pi可能需要的信息，提前检索并注入
  *
- * 优化4: 子Pi结果流式Reduce
+ * 优化4: 流式Reduce + 并发控制
  *   不等所有子Pi完成再汇总，完成一个就注入到主Pi的context
+ *
+ * v2 新增:
+ * 优化5: 并发控制(ConcurrencyController)
+ *   Promise信号量模式，防止同时发起过多LLM请求压垮下游
+ * 优化6: 增量Reduce上下文
+ *   每完成一个Worker立即将结果注入共享层，后续Worker可见
  */
 
 import { SharedCognitiveLayer } from './shared-layer.js';
@@ -85,6 +91,54 @@ export class ToolDeduplicator {
       cachedResults: this.results.size,
     };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 并发控制器 — Promise 信号量
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 并发控制器：限制同时进行中的异步操作数
+ *
+ * 场景: 5个Worker池，但Map阶段可能有8个子任务
+ *       → 同时最多5个Worker并行，其余排队
+ */
+export class ConcurrencyController {
+  private running = 0;
+  private queue: Array<() => void> = [];
+  private _maxConcurrency: number;
+
+  constructor(maxConcurrency: number) {
+    this._maxConcurrency = Math.max(1, maxConcurrency);
+  }
+
+  /** 获取执行槽位。若已满则排队等待 */
+  async acquire(): Promise<void> {
+    if (this.running < this._maxConcurrency) {
+      this.running++;
+      return;
+    }
+    return new Promise<void>(resolve => {
+      this.queue.push(() => {
+        this.running++;
+        resolve();
+      });
+    });
+  }
+
+  /** 释放槽位，唤醒下一个等待者 */
+  release(): void {
+    this.running--;
+    const next = this.queue.shift();
+    if (next) {
+      // 微任务调度，避免调用栈膨胀
+      setImmediate ? setImmediate(next) : setTimeout(next, 0);
+    }
+  }
+
+  get active(): number { return this.running; }
+  get waiting(): number { return this.queue.length; }
+  get maxConcurrency(): number { return this._maxConcurrency; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -170,34 +224,79 @@ export interface StreamReduceResult {
   index: number;
 }
 
+/** 增量 Reduce 回调签名：每完成一个 Worker 即触发 */
+export type PartialReduceCallback = (
+  completed: number,
+  total: number,
+  result: string,
+  index: number,
+  /** 当前所有已完成结果（按索引排序，未完成的为空串） */
+  allResults: string[],
+) => void | Promise<void>;
+
 export class StreamReduceCollector {
   private results: Map<number, string> = new Map();
   private total: number;
   private onPartial?: (completed: number, total: number) => void;
+  private onPartialResult?: PartialReduceCallback;
   private resolve!: (results: string[]) => void;
   private promise: Promise<string[]>;
 
+  /**
+   * @param total 总子任务数
+   * @param onPartial 进度回调（兼容旧接口）
+   */
   constructor(total: number, onPartial?: (completed: number, total: number) => void) {
     this.total = total;
     this.onPartial = onPartial;
     this.promise = new Promise((resolve) => { this.resolve = resolve; });
   }
 
+  /** 设置增量结果回调（流式Reduce核心） */
+  setPartialResultCallback(cb: PartialReduceCallback): this {
+    this.onPartialResult = cb;
+    return this;
+  }
+
   /** 收集一个子Pi的结果 */
   collect(index: number, result: string): void {
     this.results.set(index, result);
+
+    // 旧接口兼容
     this.onPartial?.(this.results.size, this.total);
+
+    // 增量 Reduce：立即通知调用方有新的部分结果
+    if (this.onPartialResult) {
+      const allSorted = this.getAllSorted();
+      this.onPartialResult(this.results.size, this.total, result, index, allSorted);
+    }
+
+    // 全部完成 → resolve
     if (this.results.size >= this.total) {
-      const ordered: string[] = [];
-      for (let i = 0; i < this.total; i++) {
-        ordered.push(this.results.get(i) ?? '');
-      }
-      this.resolve(ordered);
+      this.resolve(this.getAllSorted());
     }
   }
 
   /** 等待所有结果收集完成 */
   async waitAll(): Promise<string[]> {
     return this.promise;
+  }
+
+  /** 获取当前已收集的结果快照（按索引排序） */
+  getPartialResults(): string[] {
+    return this.getAllSorted();
+  }
+
+  /** 获取已完成的索引集合 */
+  get completedIndices(): Set<number> {
+    return new Set(this.results.keys());
+  }
+
+  private getAllSorted(): string[] {
+    const ordered: string[] = [];
+    for (let i = 0; i < this.total; i++) {
+      ordered.push(this.results.get(i) ?? '');
+    }
+    return ordered;
   }
 }

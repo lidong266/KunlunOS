@@ -1,60 +1,52 @@
-# Pi-Kunlun v0.9.1 — 共享认知层 v2 改进
+# KunlunOS 微内核利用率优化 — v4 迭代总结
 
-## 完成内容
+## 改了什么
 
-### 1. 共享认知层 v2 重写 (`shared-layer.ts`: 582行)
+### 1. 并发控制 (ConcurrencyController)
+- **文件**: `packages/kunlun-os-core/src/optimizations.ts`
+- 新增 `ConcurrencyController` 类：Promise 信号量模式
+- 防止 Map 阶段子任务数 > Worker 数时，同时发起过多 LLM 请求
+- `mapReduce` 新增 `options.maxConcurrency` 参数，默认 = workers 数量
+- 返回 `concurrencyStats`（max/peak/avgWaiters）方便监控
 
-**PromptNormalizer — 语义规范化引擎**
-- 中英文停用词库（120+词）+ 标点统一化
-- Jaccard token-overlap 相似度计算
-- cacheKey() 生成规范化的缓存键
+### 2. 流式增量 Reduce (StreamReduceCollector v2)
+- **文件**: `packages/kunlun-os-core/src/optimizations.ts`
+- `StreamReduceCollector` 新增 `setPartialResultCallback()` 方法
+- 每完成一个 Worker 立即触发回调，而非等全部完成
+- 新增 `getPartialResults()` 获取当前快照
+- 新增 `completedIndices` 属性追踪完成进度
 
-**LLMResponseCache — LRU + TTL 双向淘汰**
-- 替换脆弱的 substring hash → PromptNormalizer 语义规范化
-- LRU 淘汰（Map insertion-order）+ TTL 过期（默认 5min）
-- 详细 CacheStats：hits/misses/hitRate/evictions/tokensSaved/fuzzyHits
+### 3. 跨 Worker 知识传递（mapReduce 核心改进）
+- **文件**: `packages/kunlun-os-core/src/multi-kernel.ts` → v3 → v4
+- `mapReduce` 新增 `options.partialReduce`（默认 `true`）
+- Worker 完成后立即通过 `StreamReduceCollector.onPartialResult` 发布洞察到共享层
+- 后续 Worker 在 `acquire()` 槽位后，自动从共享层获取已完成的洞察并注入 prompt
+- 实现了真正的跨核知识传递：先完成的分析结果直接提升后完成的分析质量
 
-**AnalysisCache — 精确 + 模糊匹配**
-- 先精确 key 匹配，再 Jaccard 模糊匹配（阈值 0.5）
-- "性能vs成本" ≈ "性能和成本的权衡" → 模糊命中
-- 上限 200 条目，超出自动淘汰最旧
+## 架构变化
 
-**缓存预热**
-- `warmAnalysisCache()` / `warmLLMCache()` 预设高频查询模式
-- 确保首次 deepAnalyze 调用即命中
+```
+v3: subTasks.map(fn) → Promise.all → 全部并发 → collector.waitAll → Reduce
 
-### 2. 跨 Worker 知识共享 (`multi-kernel.ts`)
+v4: subTasks.map(fn) → ConcurrencyController.acquire()
+     │                    ├─ 获取共享洞察(partialReduce)
+     │                    ├─ Worker执行
+     │                    ├─ collector.collect → onPartialResult → publishWorkerResult
+     │                    └─ ConcurrencyController.release()
+     └─ collector.waitAll → Reduce（上下文已预构建）
+```
 
-**Worker 结果发布到共享层**
-- Map 阶段每个 Worker 完成后调用 `shared.publishWorkerResult()`
-- 自动去重（同 workerId+query 只保留最新）
-- 上限 50 条，超出淘汰最旧
+## 测试结果
 
-**Reduce 阶段共享洞察注入**
-- `getSharedInsights(query, 3)` 按语义相关性排序
-- 将先完成 Worker 的关键发现注入 Reduce prompt
+- **新增测试**: 6 项（ConcurrencyController x3 + StreamReduceCollector x2 + 增量Reduce x1）
+- **全量测试**: 879 tests / 36 files 全部通过
+- **构建**: 核心代码零类型错误（fork 的 `agent-harness.ts` 有预存类型问题，与此无关）
 
-**关键发现提取**
-- `extractKeyFindings()` 按句式优先级提取（"关键"/"核心"/"发现" 优先）
+## 收益量化
 
-### 3. 成本收益
-
-| 场景 | 改进前 | 改进后 | 节省 |
-|------|--------|--------|------|
-| N 个 Pi 并行 context | N × 2000 tokens | 1 × 2000 + N × 500 | (N-1) × 1500 tokens |
-| 相似查询 LLM 调用 | 每次完整调用 | 模糊缓存命中 | 100% |
-| 相同 prompt 重复调用 | 无缓存 | LRU 精确命中 | 100% |
-
-## 验证结果
-
-| 指标 | 结果 |
-|------|------|
-| 测试 | **874 tests / 36 files** 全部通过 ✅ |
-| 构建 | 19 个包全部成功 |
-| 回归 | 零回归 |
-
-## 变更文件
-
-- `packages/kunlun-os-core/src/shared-layer.ts` — 重写 (582行)
-- `packages/kunlun-os-core/src/multi-kernel.ts` — Worker 发布 + 共享洞察 + extractKeyFindings
-- `packages/kunlun-os-core/__tests__/multi-kernel-efficiency.test.ts` — API 适配
+| 指标 | v3 | v4 | 提升 |
+|------|----|----|------|
+| 并发控制 | 无（全部同时发） | 信号量限流 | 防止 LLM 过载 |
+| 流式Reduce | 等全部完成再汇总 | 完成即注入 | Reduce 上下文预构建 |
+| 跨核知识传递 | 仅 Reduce 阶段可见 | Map 阶段实时共享 | 后完成 Worker 可参考先完成结果 |
+| 可观测性 | 仅 elapsed | + concurrencyStats | 峰值/平均排队可监控 |

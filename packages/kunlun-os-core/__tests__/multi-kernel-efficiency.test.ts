@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { SharedCognitiveLayer, LLMResponseCache } from '../src/shared-layer.js';
-import { CognitivePrefetcher, ToolDeduplicator, StreamReduceCollector } from '../src/optimizations.js';
+import { CognitivePrefetcher, ToolDeduplicator, StreamReduceCollector, ConcurrencyController } from '../src/optimizations.js';
 
 describe('多Pi架构效率测试', () => {
   // ═══════════════════════════════════════════════════════════
@@ -176,6 +176,116 @@ describe('多Pi架构效率测试', () => {
       expect(results).toEqual(['result-1', 'result-2', 'result-3']);
       expect(completed).toEqual([1, 2, 3]);
       console.log(`  流式收集完成顺序: ${completed.join(' → ')}`);
+    });
+
+    it('增量Reduce回调：每完成一个Worker就触发onPartialResult', async () => {
+      const partialResults: Array<{ index: number; text: string }> = [];
+
+      const collector = new StreamReduceCollector(3)
+        .setPartialResultCallback((_done, _total, result, index, allResults) => {
+          partialResults.push({ index, text: result });
+        });
+
+      collector.collect(2, 'C');
+      collector.collect(0, 'A');
+      collector.collect(1, 'B');
+
+      expect(partialResults.length).toBe(3);
+      expect(partialResults[0]).toEqual({ index: 2, text: 'C' });
+      expect(partialResults[1]).toEqual({ index: 0, text: 'A' });
+      expect(partialResults[2]).toEqual({ index: 1, text: 'B' });
+    });
+
+    it('getPartialResults 返回当前快照（未完成的为空串）', async () => {
+      const collector = new StreamReduceCollector(4)
+        .setPartialResultCallback(() => {});
+
+      collector.collect(0, 'A');
+      collector.collect(2, 'C');
+
+      const snapshot = collector.getPartialResults();
+      expect(snapshot).toEqual(['A', '', 'C', '']);
+      expect(collector.completedIndices).toEqual(new Set([0, 2]));
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // 并发控制
+  // ═══════════════════════════════════════════════════════════
+  describe('ConcurrencyController', () => {
+    it('限制并发：max=2，5个任务 → 同时最多2个运行', async () => {
+      const ctrl = new ConcurrencyController(2);
+      let peak = 0;
+      let running = 0;
+
+      const task = async () => {
+        running++;
+        peak = Math.max(peak, running);
+        await new Promise(r => setTimeout(r, 10));
+        running--;
+      };
+
+      const tasks = Array.from({ length: 5 }, async () => {
+        await ctrl.acquire();
+        try {
+          await task();
+        } finally {
+          ctrl.release();
+        }
+      });
+
+      await Promise.all(tasks);
+      expect(peak).toBe(2); // 最多2个并发
+      console.log(`  5任务/max=2 → 峰值并发 ${peak} | 平均等待 ${ctrl.waiting > 0 ? 'yes' : 'no'}`);
+    });
+
+    it('maxConcurrency=3 时同时最多3个运行', async () => {
+      const ctrl = new ConcurrencyController(3);
+      let peak = 0;
+      let running = 0;
+
+      const tasks = Array.from({ length: 6 }, async () => {
+        await ctrl.acquire();
+        try {
+          running++;
+          peak = Math.max(peak, running);
+          await new Promise(r => setTimeout(r, 5));
+          running--;
+        } finally {
+          ctrl.release();
+        }
+      });
+
+      await Promise.all(tasks);
+      expect(peak).toBeLessThanOrEqual(3);
+      console.log(`  6任务/max=3 → 峰值并发 ${peak}`);
+    });
+
+    it('active/waiting 状态正确追踪', async () => {
+      const ctrl = new ConcurrencyController(1);
+      expect(ctrl.active).toBe(0);
+      expect(ctrl.waiting).toBe(0);
+
+      // 获取槽位
+      const p1 = ctrl.acquire();
+      expect(ctrl.active).toBe(1);
+
+      // 第二个请求应该排队
+      const p2Promise = ctrl.acquire();
+
+      // 让事件循环跑一下
+      await new Promise(r => setTimeout(r, 5));
+
+      expect(ctrl.active).toBe(1);
+      expect(ctrl.waiting).toBe(1);
+
+      await p1;
+      ctrl.release();
+
+      // 等待 p2 被唤醒
+      await new Promise(r => setTimeout(r, 10));
+      expect(ctrl.active).toBe(1);
+      expect(ctrl.waiting).toBe(0);
     });
   });
 

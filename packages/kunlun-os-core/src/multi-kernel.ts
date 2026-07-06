@@ -1,5 +1,5 @@
 /**
- * KunlunOS 多微内核调度器 v3 — MapReduce 认知并行
+ * KunlunOS 多微内核调度器 v4 — MapReduce 认知并行 + 并发控制 + 流式Reduce
  *
  * 核心思路：一个任务拆成 N 个子任务，N 个 Pi 并行执行，主 Pi 汇总。
  *
@@ -7,7 +7,7 @@
  *     │
  *     ├─ 主 Pi (Map 阶段): injectCognition 拆解 → 3 个子任务
  *     │   ├─ Pi-1: "从技术角度分析这个项目" ─┐
- *     │   ├─ Pi-2: "从商业角度分析这个项目" ─┤ 并行 agent-loop
+ *     │   ├─ Pi-2: "从商业角度分析这个项目" ─┤ 受控并发(信号量)
  *     │   └─ Pi-3: "从风险角度分析这个项目" ─┘
  *     │
  *     └─ 主 Pi (Reduce 阶段): 收集 3 个结果 → 综合集成 → 输出
@@ -16,6 +16,11 @@
  *   - TokenManager: 共享 Token 预算，避免重复消耗
  *   - Session: 共享上下文，子 Pi 的结果写入主 Pi 的 session
  *   - 认知引擎: injectCognition 共用（纯本地，不需要 Pi）
+ *
+ * v4 改进:
+ *   - 并发控制: ConcurrencyController Promise信号量，防止LLM过载
+ *   - 流式Reduce: partialReduce模式 — 先完成Worker的结果立即注入共享层
+ *     后续Worker的prompt自动包含已完成的洞察，实现跨核知识传递
  */
 
 import { CogScheduler, CogMultiInstanceManager, CogPriority } from '@kunlun/cogkal';
@@ -25,7 +30,7 @@ import type { AssistantMessage } from '@earendil-works/pi-ai';
 import type { KunlunAnalysis } from './kunlun-os.js';
 import { SharedCognitiveLayer } from './shared-layer.js';
 import type { SharedLayerConfig } from './shared-layer.js';
-import { CognitivePrefetcher, StreamReduceCollector } from './optimizations.js';
+import { CognitivePrefetcher, StreamReduceCollector, ConcurrencyController } from './optimizations.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 子任务
@@ -55,10 +60,24 @@ export interface KernelPoolConfig {
   workers?: number;
   /** 是否共享 Session（默认 true） */
   shareSession?: boolean;
+  /** 最大并发 LLM 请求数（默认 = workers 数量，设为更大可让更多子任务排队） */
+  maxConcurrency?: number;
+}
+
+export interface MapReduceOptions {
+  /** 最大并发 LLM 请求数（默认 = workers 数量） */
+  maxConcurrency?: number;
+  /**
+   * 是否启用流式增量 Reduce
+   * - 开启后，先完成的 Worker 结果会立即发布到共享层
+   * - 后续 Worker 的 prompt 会自动包含已完成的洞察
+   * - 跨核知识传递，提升整体分析质量
+   */
+  partialReduce?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MultiKernelOrchestrator v3
+// MultiKernelOrchestrator v4
 // ═══════════════════════════════════════════════════════════════
 
 export class MultiKernelOrchestrator {
@@ -113,6 +132,10 @@ export class MultiKernelOrchestrator {
    *
    * 将一个复杂任务拆成 N 个子任务，分配给 N 个工作 Pi 并行执行，
    * 主 Pi 收集结果后综合输出。
+   *
+   * @param options.partialReduce 启用流式增量Reduce — 先完成Worker的结果立即注入共享层，
+   *   后续Worker的prompt自动包含已完成洞察，实现跨核知识传递
+   * @param options.maxConcurrency 最大并发LLM请求数，默认=workers数量
    */
   async mapReduce(
     /** 用户原始问题 */
@@ -121,6 +144,8 @@ export class MultiKernelOrchestrator {
     subTasks: SubTask[],
     /** 汇总时的 system prompt */
     reducePrompt?: string,
+    /** v4 新增选项 */
+    options?: MapReduceOptions,
   ): Promise<{
     /** 每个子任务的结果 */
     subResults: SubTaskResult[];
@@ -128,8 +153,13 @@ export class MultiKernelOrchestrator {
     finalReply: AssistantMessage;
     /** 总耗时 (ms) */
     elapsed: number;
+    /** v4 并发统计 */
+    concurrencyStats?: { max: number; peak: number; avgWaiters: number };
   }> {
     const startTime = Date.now();
+    const partialReduce = options?.partialReduce ?? true; // 默认开启流式Reduce
+    const maxConcurrency = options?.maxConcurrency ?? this.config.workers;
+    const concurrency = new ConcurrencyController(maxConcurrency);
 
     // 生成预取注入文本（从 shared 层获取）
     const cachedAnalysis = this.shared.getCachedAnalysis(query);
@@ -139,33 +169,68 @@ export class MultiKernelOrchestrator {
         )
       : '';
 
-    // ── Map 阶段: N个Pi并行，注入共享上下文 ──
+    // ── Map 阶段: N个Pi受控并发，流式注入共享洞察 ──
     const collector = new StreamReduceCollector(subTasks.length);
+
+    // 流式增量Reduce：Worker完成 → 立即发布到共享层 → 后续Worker可见
+    let concurrencyPeak = 0;
+    let waitersTotal = 0;
+    let waitersSamples = 0;
+
+    collector.setPartialResultCallback((_done, _total, resultText, index) => {
+      // 每完成一个Worker，立即发布洞察到共享层
+      this.shared.publishWorkerResult({
+        workerId: `worker-${index}`,
+        query: subTasks[index]!.prompt,
+        summary: resultText.slice(0, 200),
+        keyFindings: extractKeyFindings(resultText, 3),
+        timestamp: Date.now(),
+      });
+
+      // 记录并发峰值
+      concurrencyPeak = Math.max(concurrencyPeak, concurrency.active + concurrency.waiting);
+      waitersTotal += concurrency.waiting;
+      waitersSamples++;
+    });
+
     const subResults = await Promise.all(
       subTasks.map(async (task, index) => {
-        const worker = this.workers[index % this.workers.length]!;
+        // 获取并发槽位（信号量控制）
+        await concurrency.acquire();
 
-        // 注入预取上下文 → 子Pi不需要各自检索
-        const enhancedPrompt = prefetchInjection
-          ? `${task.systemPrompt ?? ''}\n${prefetchInjection}\n\n问题: ${task.prompt}`
-          : task.prompt;
+        try {
+          const worker = this.workers[index % this.workers.length]!;
 
-        const result = await worker.harness.prompt(enhancedPrompt);
-        const analysis = worker.getLatestAnalysis();
+          // partialReduce: 获取已完成的Worker洞察，注入到当前Worker的prompt
+          const partialInsights = partialReduce
+            ? this.shared.getSharedInsights(task.prompt, 2)
+            : [];
+          const insightsInjection = partialInsights.length > 0
+            ? `\n\n[已有 ${partialInsights.length} 个子任务完成分析，关键结论供参考]\n${
+                partialInsights.map((s, i) => `(${i + 1}) ${s.summary}`).join('\n')
+              }\n`
+            : '';
 
-        // 发布 Worker 洞察到共享层，供后续Worker/Reduce复用
-        const resultText = extractText(result);
-        this.shared.publishWorkerResult({
-          workerId: `worker-${index}`,
-          query: task.prompt,
-          summary: resultText.slice(0, 200),
-          keyFindings: extractKeyFindings(resultText, 3),
-          timestamp: Date.now(),
-        });
+          // 构建增强 prompt：预取上下文 + 流式共享洞察
+          const parts = [
+            task.systemPrompt,
+            prefetchInjection,
+            insightsInjection,
+            `\n问题: ${task.prompt}`,
+          ];
+          const enhancedPrompt = parts.filter(Boolean).join('\n');
 
-        const sr: SubTaskResult = { taskId: task.id, result, analysis: analysis ?? undefined };
-        collector.collect(index, resultText);
-        return sr;
+          const result = await worker.harness.prompt(enhancedPrompt);
+          const analysis = worker.getLatestAnalysis();
+          const resultText = extractText(result);
+
+          collector.collect(index, resultText);
+
+          const sr: SubTaskResult = { taskId: task.id, result, analysis: analysis ?? undefined };
+          return sr;
+        } finally {
+          concurrency.release();
+        }
       })
     );
 
@@ -191,6 +256,11 @@ export class MultiKernelOrchestrator {
       subResults,
       finalReply,
       elapsed: Date.now() - startTime,
+      concurrencyStats: {
+        max: maxConcurrency,
+        peak: concurrencyPeak,
+        avgWaiters: waitersSamples > 0 ? Math.round((waitersTotal / waitersSamples) * 100) / 100 : 0,
+      },
     };
   }
 
