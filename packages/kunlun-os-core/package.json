@@ -12,7 +12,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "scripts": {
+  "bin": {
+    "kunlun": "./bin/kunlun.mjs"
+  },
     "build": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"
