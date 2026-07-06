@@ -288,7 +288,7 @@ describe('KunlunOS Core', () => {
 
     it('should throw when accessing subsystems before boot', () => {
       const unstartedOS = new KunlunOS();
-      expect(() => unstartedOS.getScheduler()).toThrow('not booted');
+      expect(() => unstartedOS.getScheduler()).toThrow(/not been booted|not booted/);
     });
   });
 

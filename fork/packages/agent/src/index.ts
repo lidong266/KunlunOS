@@ -1,46 +1,12 @@
-// Core Agent
+// ─── 微内核：Agent 核心循环 ───
 export * from "./agent.js";
-// Loop functions
 export * from "./agent-loop.js";
-export * from "./harness/agent-harness.js";
-export {
-	type BranchPreparation,
-	type BranchSummaryDetails,
-	type CollectEntriesResult,
-	collectEntriesForBranchSummary,
-	generateBranchSummary,
-	prepareBranchEntries,
-} from "./harness/compaction/branch-summarization.js";
-export {
-	calculateContextTokens,
-	compact,
-	DEFAULT_COMPACTION_SETTINGS,
-	estimateContextTokens,
-	estimateTokens,
-	findCutPoint,
-	findTurnStartIndex,
-	generateSummary,
-	getLastAssistantUsage,
-	prepareCompaction,
-	serializeConversation,
-	shouldCompact,
-} from "./harness/compaction/compaction.js";
-export * from "./harness/messages.js";
-export * from "./harness/prompt-templates.js";
-export * from "./harness/session/jsonl-repo.js";
-export * from "./harness/session/memory-repo.js";
-export * from "./harness/session/repo-utils.js";
-export * from "./harness/session/session.js";
-export { uuidv7 } from "./harness/session/uuid.js";
-export * from "./harness/skills.js";
-export * from "./harness/system-prompt.js";
-// Harness
-export * from "./harness/types.js";
-export * from "./harness/utils/shell-output.js";
-export * from "./harness/utils/truncate.js";
-// Proxy utilities
+export * from "./types.js";
+
+// ─── 微内核：LLM 代理 ───
 export * from "./proxy.js";
-// 三元认知引擎桥接
+
+// ─── 微内核：三元认知引擎桥接 ───
 export {
 	registerKunlunEngine,
 	isKunlunEngineLoaded,
@@ -59,6 +25,3 @@ export type {
 	BatchToolDecisionContext,
 	ToolDecision,
 } from "./kunlun-bridge.js";
-
-// Types
-export * from "./types.js";

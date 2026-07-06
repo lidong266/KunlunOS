@@ -24,6 +24,7 @@ export default defineConfig({
       '@kunlun/cog-metasynthesis': path.resolve(__dirname, 'packages/kunlun-cog-metasynthesis/src'),
       '@kunlun/cog-executor': path.resolve(__dirname, 'packages/kunlun-cog-executor/src'),
       '@kunlun/os-core': path.resolve(__dirname, 'packages/kunlun-os-core/src'),
+      '@kunlun/pi-agent-core': path.resolve(__dirname, 'fork/packages/agent/src'),
     },
   },
   test: {

@@ -18,6 +18,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@kunlun/pi-agent-core": "workspace:*",
+    "@earendil-works/pi-ai": "^0.80.3",
+    "ignore": "7.0.5",
+    "typebox": "1.1.38",
+    "yaml": "2.9.0",
     "@kunlun/ternary": "workspace:*",
     "@kunlun/cogkal": "workspace:*",
     "@kunlun/cogbus": "workspace:*",
