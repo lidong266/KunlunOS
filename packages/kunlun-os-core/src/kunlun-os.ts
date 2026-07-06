@@ -1,13 +1,16 @@
 /**
- * KunlunOS 主入口 — 以 Pi Agent 为微内核的认知操作系统
+ * KunlunOS 主入口 — 以大成智慧学为运行、以 Pi Agent 为微内核的认知操作系统
  *
  * 架构：
  *   Pi Agent (Agent/AgentHarness) → 微内核层（LLM调用 + 工具执行 + 消息流）
- *   昆仑OS                         → 认知调度层（三元分析 + 矛盾引擎 + 策略 + 记忆）
+ *   昆仑OS                         → 认知调度层（大成智慧学综合集成）
  *
  * 关键原则：昆仑OS 调度 Pi，不是 Pi 调度昆仑OS。
- * 昆仑OS 在每次 LLM 调用前注入三元认知分析到 system prompt，
- * 在每次工具调用前通过安全管线决策是否放行。
+ *
+ * 每次 LLM 调用前，昆仑OS 执行大成智慧学管线：
+ *   用户输入 → 十一桥路由 → 知识卡片加载 → 矛盾分析 → 综合集成 → prompt 注入
+ *
+ * 每次工具调用前，通过安全管线决策是否放行。
  */
 
 import type { Trit, Tryte } from '@kunlun/ternary';
@@ -16,11 +19,30 @@ import { createContradictionEngine } from '@kunlun/contradiction';
 import type { ContradictionEngine } from '@kunlun/contradiction';
 import { PracticeSpiralEngine } from '@kunlun/spiral';
 import { ProtractedWarEngine } from '@kunlun/pw';
+import { MetaSynthesisEngine } from '@kunlun/cog-metasynthesis';
+import type { SynthesisParticipant } from '@kunlun/cog-metasynthesis';
+import {
+  ConfidenceTagRenderer,
+  ContradictionVisualizer,
+  DomainRouter,
+  TernarySecurityPipeline,
+  PipelineLayer,
+} from '@kunlun/subsystems';
+import type { RenderOutput } from '@kunlun/subsystems';
 
 import type { KunlunOSConfig, OSStatus, OSState, BootPhaseLog } from './types';
 import { defaultOSConfig } from './types';
 import { CogBoot } from './boot';
 import type { BootResult } from './boot';
+
+// ─── 大成智慧学：十一桥 ───
+import {
+  routeToBridge,
+  getBridgeCards,
+  getBridgeAxiom,
+  type BridgeProfile,
+  type KnowledgeCard,
+} from './eleven-bridges.js';
 
 // ─── 认知分析结果 ──────────────────────────────────────────
 
@@ -33,6 +55,14 @@ export interface KunlunAnalysis {
   memoryContext?: string;
   ecosystemHealth?: Trit;
   summary: string;
+  /** 大成智慧学：路由到的学科桥 */
+  bridge?: { id: string; name: string; icon: string; axiom: string };
+  /** 大成智慧学：加载的知识卡片 */
+  knowledgeCards?: Array<{ id: string; title: string; type: string }>;
+  /** 大成智慧学：综合集成结果 */
+  synthesis?: { stance: string; confidence: number };
+  /** 天工渲染：三元信度标注输出 */
+  rendered?: { overallConfidence: string; summary: string };
   /** 注入到 LLM system prompt 的格式化文本 */
   promptInjection: string;
 }
@@ -64,12 +94,21 @@ export class KunlunOS {
   private _contradiction!: ContradictionEngine;
   private _spiral!: PracticeSpiralEngine;
   private _protractedWar!: ProtractedWarEngine;
+  private _metasynthesis!: MetaSynthesisEngine;
+  private _tiangong: ConfidenceTagRenderer;
+  private _visualizer: ContradictionVisualizer;
+  private _domainRouter: DomainRouter;
+  private _securityPipeline: TernarySecurityPipeline;
 
   // Pi Agent 引用
   piAgent: unknown = null;
 
   constructor(config: Partial<KunlunOSConfig> = {}) {
     this.config = { ...defaultOSConfig(), ...config };
+    this._tiangong = new ConfidenceTagRenderer();
+    this._visualizer = new ContradictionVisualizer();
+    this._domainRouter = new DomainRouter();
+    this._securityPipeline = new TernarySecurityPipeline();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -96,6 +135,7 @@ export class KunlunOS {
     this._contradiction = createContradictionEngine();
     this._spiral = new PracticeSpiralEngine();
     this._protractedWar = new ProtractedWarEngine();
+    this._metasynthesis = new MetaSynthesisEngine();
 
     this.log(`  - 矛盾引擎: 就绪 (8分析器)`);
     this.log(`  - 持久战引擎: 就绪 (三阶段)`);
@@ -198,12 +238,21 @@ export class KunlunOS {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 核心 API：认知注入（兼容 pi-adapter）
+  // 核心 API：大成智慧学认知注入
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * 将昆仑OS 认知分析注入到 LLM system prompt
-   * 在 Pi 的 agent-loop 中，每次 LLM 调用前会自动调用此方法
+   * 大成智慧学认知分析管线
+   *
+   * 每次 LLM 调用前执行，将分析结果注入 system prompt：
+   *
+   *   用户输入
+   *     → 十一桥路由 (routeToBridge)
+   *     → 加载知识卡片 (AX/SC/TC)
+   *     → 矛盾分析 (ContradictionEngine)
+   *     → 策略分析 (ProtractedWar / PracticeSpiral)
+   *     → 综合集成 (MetaSynthesisEngine)
+   *     → 生成 promptInjection
    */
   async injectCognition(
     messages: Array<{ role: string; content: unknown }>,
@@ -225,15 +274,17 @@ export class KunlunOS {
 
     if (!queryText) return this.emptyAnalysis();
 
+    // ── 阶段1：十一桥路由 ──
+    const bridge = routeToBridge(queryText);
+    const axiom = getBridgeAxiom(bridge.id);
+    const cards = getBridgeCards(bridge.id);
+
+    // ── 阶段2：矛盾感知（谛听） ──
     const contradictions: Array<{ thesis: string; antithesis: string }> = [];
     let unifiability: Trit = T_UNKNOWN;
     let dominantAspect: Trit = T_UNKNOWN;
     let qualitativeState: Trit = T_FALSE;
-    let strategy: string | undefined;
-    let memoryContext: string | undefined;
-    let ecosystemHealth: Trit | undefined;
 
-    // 谛听：矛盾感知
     const extracted = this.extractContradictions(queryText);
     contradictions.push(...extracted);
 
@@ -244,7 +295,7 @@ export class KunlunOS {
           thesis: {
             id: `th-${Date.now()}`,
             statement: contradictions[0]!.thesis,
-            domain: 'general',
+            domain: bridge.name,
             evidence: [],
             counterEvidence: [],
             confidenceTrit: T_UNKNOWN,
@@ -257,7 +308,7 @@ export class KunlunOS {
           antithesis: {
             id: `at-${Date.now()}`,
             statement: contradictions[0]!.antithesis,
-            domain: 'general',
+            domain: bridge.name,
             evidence: [],
             counterEvidence: [],
             confidenceTrit: T_UNKNOWN,
@@ -284,7 +335,11 @@ export class KunlunOS {
       }
     }
 
-    // 持久战策略
+    // ── 阶段3：策略分析 ──
+    let strategy: string | undefined;
+    let memoryContext: string | undefined;
+    let ecosystemHealth: Trit | undefined;
+
     if (this._protractedWar && this.matchesStrategy(queryText)) {
       try {
         const pwCtx = {
@@ -311,7 +366,6 @@ export class KunlunOS {
       } catch { /* ignore */ }
     }
 
-    // 实践螺旋
     if (this._spiral && this.matchesSpiral(queryText)) {
       try {
         const ctx = {
@@ -327,19 +381,80 @@ export class KunlunOS {
       } catch { /* ignore */ }
     }
 
-    // 构建 prompt 注入文本
-    const summary = contradictions.length > 0
-      ? `检测到 ${contradictions.length} 组矛盾，可统一性: ${unifiability === 1 ? '可统一' : unifiability === 0 ? '待分析' : '不可调和'}`
-      : strategy
-        ? `策略分析进行中`
-        : '基础认知模式';
+    // ── 阶段4：综合集成（大成智慧学核心） ──
+    let synthesisResult: { stance: string; confidence: number } | undefined;
 
+    if (this._metasynthesis && contradictions.length > 0) {
+      try {
+        // 构建研讨参与者：矛盾的正反方 + 桥的学科视角
+        const participants: SynthesisParticipant[] = [
+          { id: 'thesis', name: contradictions[0]?.thesis ?? '正题', type: 'pi-agent' },
+          { id: 'antithesis', name: contradictions[0]?.antithesis ?? '反题', type: 'pi-agent' },
+          { id: 'bridge', name: `${bridge.icon} ${bridge.name}视角`, type: 'pi-agent' },
+        ];
+
+        const synthesis = await this._metasynthesis.synthesize(queryText, participants);
+        const stanceLabel = synthesis.consensus.stance === 1 ? '正题主导'
+          : synthesis.consensus.stance === -1 ? '反题主导'
+          : '均势待定';
+
+        synthesisResult = {
+          stance: stanceLabel,
+          confidence: Math.round(synthesis.overallConfidence * 100) / 100,
+        };
+      } catch { /* ignore */ }
+    }
+
+    // ── 阶段5: 天工渲染（三元信度驱动的表达） ──
+    let renderedOutput: { overallConfidence: string; summary: string } | undefined;
+
+    if (contradictions.length > 0) {
+      try {
+        // 为矛盾对计算三元信度
+        const trits: Trit[] = contradictions.map(() =>
+          unifiability === T_TRUE ? T_TRUE : unifiability === T_FALSE ? T_FALSE : T_UNKNOWN
+        );
+        const renderResult = this._tiangong.render(
+          contradictions.map(c => `${c.thesis} ↔ ${c.antithesis}`).join('；'),
+          trits,
+        );
+        const tag = this._tiangong.getTag(renderResult.overallConfidence);
+        renderedOutput = {
+          overallConfidence: `${tag.symbol} ${tag.label}`,
+          summary: renderResult.confidenceSummary,
+        };
+      } catch { /* ignore */ }
+    }
+
+    // ── 构建分析摘要 ──
+    const summaryParts: string[] = [];
+    summaryParts.push(`📍 ${bridge.icon} ${bridge.name}桥`);
+
+    if (contradictions.length > 0) {
+      const unifLabel = unifiability === 1 ? '可统一 ✅' : unifiability === 0 ? '待分析 ⚪' : '不可调和 ❌';
+      summaryParts.push(`${contradictions.length}组矛盾，${unifLabel}`);
+    }
+    if (synthesisResult) {
+      summaryParts.push(`综合集成: ${synthesisResult.stance}(${synthesisResult.confidence})`);
+    }
+    if (strategy) {
+      summaryParts.push(strategy);
+    }
+
+    const summary = summaryParts.join(' | ') || '基础认知模式';
+
+    // ── 构建 prompt 注入 ──
     const promptInjection = this.buildPromptInjection({
       contradictions,
       unifiability,
       dominantAspect,
       strategy,
       summary,
+      bridge,
+      cards,
+      axiom,
+      synthesis: synthesisResult,
+      rendered: renderedOutput,
     });
 
     return {
@@ -351,6 +466,10 @@ export class KunlunOS {
       memoryContext,
       ecosystemHealth,
       summary,
+      bridge: { id: bridge.id, name: bridge.name, icon: bridge.icon, axiom },
+      knowledgeCards: cards.map(c => ({ id: c.id, title: c.title, type: c.type })),
+      synthesis: synthesisResult,
+      rendered: renderedOutput,
       promptInjection,
     };
   }
@@ -486,12 +605,36 @@ export class KunlunOS {
     dominantAspect: Trit;
     strategy?: string;
     summary: string;
+    bridge?: BridgeProfile;
+    cards?: KnowledgeCard[];
+    axiom?: string;
+    synthesis?: { stance: string; confidence: number };
+    rendered?: { overallConfidence: string; summary: string };
   }): string {
     const lines: string[] = [];
     lines.push('');
-    lines.push('─── 三元认知分析（昆仑OS） ───');
+    lines.push('─── 大成智慧学·认知分析（昆仑OS） ───');
     lines.push('');
 
+    // ── 十一桥路由 ──
+    if (analysis.bridge) {
+      lines.push(`【${analysis.bridge.icon} ${analysis.bridge.name}桥】${analysis.bridge.axiom}`);
+      lines.push('');
+    }
+
+    // ── 知识卡片 ──
+    if (analysis.cards && analysis.cards.length > 0) {
+      lines.push('【知识卡片】');
+      const axCard = analysis.cards.find(c => c.type === 'AX');
+      const scCard = analysis.cards.find(c => c.type === 'SC');
+      const tcCard = analysis.cards.find(c => c.type === 'TC');
+      if (axCard) lines.push(`  公理: ${axCard.title}`);
+      if (scCard) lines.push(`  学科: ${scCard.title}`);
+      if (tcCard) lines.push(`  工具: ${tcCard.title}`);
+      lines.push('');
+    }
+
+    // ── 矛盾感知 ──
     if (analysis.contradictions.length > 0) {
       lines.push('【矛盾感知】');
       for (const c of analysis.contradictions) {
@@ -504,6 +647,23 @@ export class KunlunOS {
       lines.push('');
     }
 
+    // ── 综合集成 ──
+    if (analysis.synthesis) {
+      lines.push('【综合集成】');
+      lines.push(`  共识立场: ${analysis.synthesis.stance}`);
+      lines.push(`  置信度: ${analysis.synthesis.confidence}`);
+      lines.push('');
+    }
+
+    // ── 天工渲染 ──
+    if (analysis.rendered) {
+      lines.push('【天工渲染】');
+      lines.push(`  信度: ${analysis.rendered.overallConfidence}`);
+      lines.push(`  ${analysis.rendered.summary}`);
+      lines.push('');
+    }
+
+    // ── 策略建议 ──
     if (analysis.strategy) {
       lines.push('【策略建议】');
       lines.push(`  ${analysis.strategy}`);

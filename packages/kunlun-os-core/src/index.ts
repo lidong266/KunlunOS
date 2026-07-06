@@ -4,7 +4,30 @@
  * 认知操作系统核心，集成所有子系统。
  * 昆仑OS 是唯一对外接口层，内部通过 Pi 微内核驱动 LLM 调用和工具执行。
  *
- * 参考设计文档第23章
+ * 子系统来源：
+ *   - @kunlun/subsystems — 谛听/太一/天工/琅嬛/归藏/镇岳/镇熵/玄关（八子系统）
+ *   - @kunlun/contradiction — 矛盾分析引擎
+ *   - @kunlun/spiral — 实践螺旋引擎
+ *   - @kunlun/pw — 持久战策略引擎
+ *   - @kunlun/ocgs — 开放复杂巨系统自适应层
+ *   - @kunlun/cog-metasynthesis — 大成智慧学综合集成
+ *   - @kunlun/cogkal — 认知内核调度器
+ *   - @kunlun/cogbus — 认知事件总线
+ *   - @kunlun/cog-algo — 算法插件注册
+ *   - @kunlun/cog-capability — 认知能力注册
+ *   - @kunlun/cog-trust — 信任管理
+ *   - @kunlun/cog-memory — Token/记忆管理
+ *   - @kunlun/cog-pipeline — 七层流管道
+ *   - @kunlun/cog-process — 认知进程管理
+ *   - @kunlun/cog-human — 人类节点通道
+ *   - @kunlun/cog-executor — 认知执行引擎
+ *   - @kunlun/ternary — 三进制数学底座
+ *
+ * OS 核心自有模块：
+ *   - eleven-bridges — 十一桥知识卡片（大成智慧学知识基础设施）
+ *   - kunlun-agent — 昆仑OS 统一 Agent 入口
+ *   - cli — 命令行交互入口
+ *   - pi-adapter — Pi Agent 集成适配器
  */
 
 // ─── 类型 ───
@@ -46,6 +69,20 @@ export type { KunlunAgentOptions } from './kunlun-agent';
 
 // ─── CLI 入口 ───
 export { KunlunCLI } from './cli';
+
+// ─── 大成智慧学：十一桥知识卡片系统 ───
+export {
+  ELEVEN_BRIDGES,
+  routeToBridge,
+  getBridgeCards,
+  getBridgeAxiom,
+  getAllBridgeIds,
+  getBridge,
+} from './eleven-bridges';
+export type {
+  BridgeProfile,
+  KnowledgeCard,
+} from './eleven-bridges';
 
 // ─── Harness 层（从 Pi 迁移来的上层功能） ───
 export { AgentHarness } from './harness/agent-harness.js';
