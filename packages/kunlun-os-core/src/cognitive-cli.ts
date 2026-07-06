@@ -32,7 +32,7 @@ import {
 } from './eleven-bridges.js';
 import { createContradictionEngine } from '@kunlun/contradiction';
 import type { ContradictionPair, Proposition, Evidence, ContradictionAnalysisOutput } from '@kunlun/contradiction';
-import { T_TRUE, T_FALSE, T_UNKNOWN } from '@kunlun/ternary';
+import { T_TRUE, T_FALSE, T_UNKNOWN, TRYTE_ZERO } from '@kunlun/ternary';
 import type { Trit, Tryte } from '@kunlun/ternary';
 
 // ═══════════════════════════════════════════════════════════════
@@ -97,7 +97,7 @@ function makeProposition(
     evidence: [makeEvidence(id, '用户提供的命题', 1)],
     counterEvidence: [],
     confidenceTrit: T_UNKNOWN,
-    confidenceVector: [0, 0, 0] as Tryte,
+    confidenceVector: TRYTE_ZERO,
     source: { type: 'perception', signalId: 'cli' } as any,
     dependencies: [],
     createdAt: Date.now(),
@@ -328,11 +328,20 @@ export class CognitiveCLI {
 
   /** /boot — CogBoot 6 阶段引导序列 */
   private async cmdBoot(): Promise<number> {
+    const os = await this.ensureStarted();
+    const cfg = os.getConfig();
+    const animated = process.stdout.isTTY === true && cfg.showBootAnim !== false;
+
+    // 动画模式（TTY + showBootAnim）：CogBoot.start() 内部的 BootAnimator 已显示完整动画，避免重复输出
+    if (animated) {
+      return 0;
+    }
+
+    // 文本降级模式：手动打印引导序列
     console.log('\n╔══════════════════════════════════════════════════════════╗');
     console.log('║  昆仑OS — CogBoot 6 阶段引导序列                         ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
 
-    const os = await this.ensureStarted();
     const logs = os.getBootLogs();
 
     console.log('');
@@ -486,7 +495,7 @@ export class CognitiveCLI {
     if (Array.isArray(triggers) && triggers.length > 0) {
       console.log('  可能触发因素:');
       for (const t of triggers.slice(0, 3)) {
-        const desc = typeof t === 'object' ? (t.description || t.factor || JSON.stringify(t).slice(0, 80)) : String(t);
+        const desc = typeof t === 'object' ? ((t as any).description || (t as any).factor || JSON.stringify(t).slice(0, 80)) : String(t);
         console.log(`    → ${desc}`);
       }
     }
@@ -505,7 +514,7 @@ export class CognitiveCLI {
 
     // 转化预测
     console.log('\n🔮 矛盾转化预测:');
-    const pred = r.transformationPrediction;
+    const pred = r.transformationPrediction as any;
     if (pred.resultingContradiction) {
       const rc = pred.resultingContradiction as any;
       console.log(`  转化后矛盾: ${rc.thesis?.statement ?? rc.statement ?? 'N/A'}`);

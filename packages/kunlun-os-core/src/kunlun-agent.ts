@@ -159,7 +159,7 @@ export class KunlunAgent<
 
         const messages = context.messages.map(m => ({
           role: m.role,
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+          content: typeof (m as any).content === 'string' ? (m as any).content : JSON.stringify((m as any).content),
         }));
 
         const analysis = await self.os.injectCognition(messages, context.systemPrompt);

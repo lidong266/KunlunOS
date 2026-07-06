@@ -57,7 +57,7 @@ export class KunlunCLI {
 
     const options: KunlunAgentOptions = {
       env,
-      session,
+      session: session as any,
       models: this.config.models,
       model: this.config.model,
       systemPrompt: this.config.systemPrompt ?? 'You are a helpful assistant powered by 昆仑OS.',

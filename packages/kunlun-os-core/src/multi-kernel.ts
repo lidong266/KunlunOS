@@ -97,6 +97,7 @@ export class MultiKernelOrchestrator {
     this.config = {
       workers: config.workers ?? 3,
       shareSession: config.shareSession ?? true,
+      maxConcurrency: config.maxConcurrency ?? config.workers ?? 3,
     };
     this.scheduler = new CogScheduler();
     this.multiInstance = new CogMultiInstanceManager(this.scheduler);
