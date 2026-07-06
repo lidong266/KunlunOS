@@ -77,6 +77,7 @@ export type { SharedLayerConfig } from './shared-layer.js';
 
 // ─── CLI 入口 ───
 export { KunlunCLI } from './cli';
+export { CognitiveCLI, runCognitiveCli } from './cognitive-cli';
 
 // ─── 大成智慧学：十一桥知识卡片系统 ───
 export {

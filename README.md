@@ -7,7 +7,7 @@
 [![Node](https://img.shields.io/badge/Node-%3E%3D22-green)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-9.15-orange)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-853%20passing-brightgreen)](.)
+[![Tests](https://img.shields.io/badge/tests-874%20passing-brightgreen)](.)
 [![Build](https://img.shields.io/badge/build-22%20packages-blue)](.)
 
 ---
@@ -18,8 +18,27 @@
 git clone https://github.com/lidong266/pi-kunlun.git
 cd pi-kunlun
 pnpm install
-pnpm test          # 853 tests, 35 files
+pnpm test          # 874 tests, 36 files
 pnpm -r build      # 22 packages
+```
+
+### 运行离线认知 CLI（无需 LLM API）
+
+```bash
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs analyze "性能和成本如何权衡"
+```
+
+无需任何 API Key 即可体验昆仑OS 的核心认知能力：十一桥路由 → 矛盾分析 → 综合集成 → 天工渲染。
+
+```bash
+# 离线认知命令（无需 API Key）
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs analyze "性能和成本如何权衡"     # 大成智慧学认知管线
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs contradiction "追求性能" vs "保证成本"  # 矛盾分析引擎（8分析器）
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs bridge "如何设计微服务架构"      # 十一桥路由+知识卡片
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs bridges                          # 列出全部十一桥
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs boot                              # CogBoot 6阶段引导
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs status                            # OS 运行状态
+npx tsx packages/kunlun-os-core/bin/kunlun.mjs                                   # 无 API Key 时进入离线 REPL
 ```
 
 ### 运行 Demo（无需 LLM API）
@@ -30,7 +49,7 @@ npx tsx demo/contradiction-demo.ts
 
 演示矛盾分析引擎的完整管线：输入真实矛盾场景 → 8 个分析器逐对分析 → 输出结构化结果（统一性/主导方面/质变临界/否定之否定/转化预测）。
 
-### 运行 CLI
+### 运行 LLM 交互模式 CLI（需 API Key）
 
 ```bash
 export KUNLUN_API_KEY=sk-xxx
@@ -188,7 +207,7 @@ orch.stop();
 ## 测试
 
 ```bash
-pnpm test                    # 853 tests, 35 files, all passing
+pnpm test                    # 874 tests, 36 files, all passing
 pnpm -r build                # 22 packages
 ```
 
@@ -198,6 +217,7 @@ pnpm -r build                # 22 packages
 
 | 版本 | 日期 | 核心变更 |
 |------|------|----------|
+| v0.9 | 07-06 | 离线认知 CLI（矛盾/十一桥/大成智慧学，无需 LLM API）+ tsx 依赖 |
 | v0.8 | 07-06 | 多微内核MapReduce + 共享认知层 + LLM智能拆解 |
 | v0.7 | 07-06 | 大成智慧学·十一桥知识卡片 + injectCognition五阶段管线 |
 | v0.6 | 07-06 | Pi微内核化，AgentHarness迁移到昆仑OS |

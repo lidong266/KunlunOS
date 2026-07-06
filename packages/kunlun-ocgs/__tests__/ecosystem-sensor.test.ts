@@ -70,17 +70,21 @@ describe('EcosystemSensor', () => {
       expect(['ok', 'degraded', 'unavailable']).toContain(mcp!.status);
     });
 
-    it('should mark hermes/clawhub/agent/tool/model/user_behavior as stub', async () => {
+    it('should return real scan results for hermes/clawhub/agent/tool/model/user_behavior (not stubs)', async () => {
       const result = await sensor.scanEcosystem();
 
-      const stubSources = [
+      const realSources = [
         'hermes', 'clawhub', 'agent_ecosystem',
         'tool_ecosystem', 'model_ecosystem', 'user_behavior',
       ];
-      for (const source of stubSources) {
+      for (const source of realSources) {
         const detail = result.sourceDetails.find((d) => d.source === source);
         expect(detail).toBeDefined();
-        expect(detail!.status).toBe('stub');
+        // 不再返回 stub —— 均为真实扫描器，返回 ok / degraded / unavailable
+        expect(detail!.status).not.toBe('stub');
+        expect(['ok', 'degraded', 'unavailable']).toContain(detail!.status);
+        // 每个扫描器至少返回 1 个信号
+        expect(detail!.signals.length).toBeGreaterThanOrEqual(1);
       }
     });
 
