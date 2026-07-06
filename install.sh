@@ -75,6 +75,21 @@ install_deps() {
   pnpm install
 }
 
+# ── 4.5 构建工作区包 ─────────────────────────────
+# os-core 从源码(tsx)运行，但其依赖(@kunlun/ternary、@kunlun/cogkal 等)
+# 的入口指向 ./dist/index.js，必须构建后 dist 才存在，否则 import 报
+# ERR_MODULE_NOT_FOUND。fork/agent 包有已知的预存类型错误(build 脚本以
+# || true 容忍)，不影响离线运行。
+build_packages() {
+  echo "⏳ 构建工作区包 (pnpm -r build) ..."
+  if pnpm -r build > /tmp/kunlun-build.log 2>&1; then
+    echo "✅ 工作区包构建完成"
+  else
+    echo "⚠️ 构建出现错误（常见于 fork 包的已知类型问题，已忽略），继续..."
+    tail -8 /tmp/kunlun-build.log
+  fi
+}
+
 # ── 5. (可选) 验证运行 ────────────────────────────
 verify() {
   echo "⏳ 运行离线引导验证安装 (boot) ..."
@@ -90,6 +105,7 @@ main() {
   ensure_pnpm
   setup_repo
   install_deps
+  build_packages
   verify
   echo ""
   echo "🎉 安装完成！在终端（TTY）中运行以查看鸿蒙6风格启动动画："
