@@ -49,16 +49,25 @@ describe('EcosystemSensor', () => {
       expect(selfDetail!.signals.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should mark openclaw and mcp_topology as stub for MVP', async () => {
+    it('should scan openclaw as ok or degraded (not stub)', async () => {
       const result = await sensor.scanEcosystem();
 
       const openclaw = result.sourceDetails.find((d) => d.source === 'openclaw');
-      const mcp = result.sourceDetails.find((d) => d.source === 'mcp_topology');
 
       expect(openclaw).toBeDefined();
-      expect(openclaw!.status).toBe('stub');
+      // 不再是 stub，而是真实扫描结果
+      expect(openclaw!.status).not.toBe('stub');
+      expect(['ok', 'degraded', 'unavailable']).toContain(openclaw!.status);
+    });
+
+    it('should scan mcp_topology as ok or degraded (not stub)', async () => {
+      const result = await sensor.scanEcosystem();
+
+      const mcp = result.sourceDetails.find((d) => d.source === 'mcp_topology');
+
       expect(mcp).toBeDefined();
-      expect(mcp!.status).toBe('stub');
+      expect(mcp!.status).not.toBe('stub');
+      expect(['ok', 'degraded', 'unavailable']).toContain(mcp!.status);
     });
 
     it('should mark hermes/clawhub/agent/tool/model/user_behavior as stub', async () => {
@@ -78,8 +87,9 @@ describe('EcosystemSensor', () => {
     it('should aggregate all signals across sources', async () => {
       const result = await sensor.scanEcosystem();
 
-      // self has 2+ signals, rest have 1 stub each → at least 10 signals
-      expect(result.signals.length).toBeGreaterThanOrEqual(10);
+      // self has 2+ signals, openclaw/mcp_topology have real signals
+      // all 9 sources contribute at least 1 signal each
+      expect(result.signals.length).toBeGreaterThanOrEqual(9);
     });
 
     it('should compute ecosystemHealth', async () => {

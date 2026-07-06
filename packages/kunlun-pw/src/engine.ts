@@ -443,7 +443,7 @@ export class ProtractedWarEngine implements IProtractedWarEngine {
 
   private evaluatePowerBalance(context: PWContext): PowerBalance {
     const { powerSnapshot } = context;
-    const ratio = powerSnapshot.relativeStrengthRatio;
+    const ratio = powerSnapshot.relativeStrengthRatio ?? 1.0;
 
     const relativeStrength: Trit = ratio > 1.3
       ? T_TRUE
@@ -452,7 +452,7 @@ export class ProtractedWarEngine implements IProtractedWarEngine {
         : T_UNKNOWN;
 
     // 从滑动窗口判断趋势
-    const trend = powerSnapshot.strengthTrend;
+    const trend = powerSnapshot.strengthTrend ?? [];
     let strengthTrend: Trit = T_UNKNOWN;
     if (trend.length >= 2) {
       const recent = trend.slice(-3);
@@ -467,8 +467,9 @@ export class ProtractedWarEngine implements IProtractedWarEngine {
     }
 
     // 关键能力 Trit 化
+    const caps = powerSnapshot.capabilities ?? {};
     const capabilities: Record<string, Trit> = {};
-    for (const [key, val] of Object.entries(powerSnapshot.capabilities)) {
+    for (const [key, val] of Object.entries(caps)) {
       capabilities[key] = val > 0.7 ? T_TRUE : val < 0.3 ? T_FALSE : T_UNKNOWN;
     }
 
@@ -489,7 +490,7 @@ export class ProtractedWarEngine implements IProtractedWarEngine {
 
   private evaluatePracticeSpiral(context: PWContext): PracticeSpiralStatus {
     const metrics = context.spiralMetrics;
-    const ratio = metrics.recentAscensionRatio;
+    const ratio = metrics.recentAscensionRatio ?? { ascension: 0, flat: 1, regression: 0 };
     const total = ratio.ascension + ratio.flat + ratio.regression;
     const ascensionRate = total > 0 ? ratio.ascension / total : 0;
 
@@ -507,7 +508,7 @@ export class ProtractedWarEngine implements IProtractedWarEngine {
   private evaluateEcosystem(context: PWContext): EcosystemFactors {
     const events = context.criticalEvents;
     const recentEvents = events.filter(
-      (e) => Date.now() - e.timestamp.getTime() < 7 * 24 * 60 * 60 * 1000, // 近7天
+      (e) => Date.now() - new Date(e.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000, // 近7天
     );
 
     const favorableCount = recentEvents.filter((e) => e.impact === 1).length;

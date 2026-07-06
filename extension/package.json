@@ -1,0 +1,23 @@
+{
+  "name": "pi-kunlun-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi-昆仑 V2 三进制认知基础设施 — pi 扩展",
+  "type": "module",
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "file:/root/pi-kunlun/fork/packages/agent",
+    "@kunlun/ternary": "file:/root/pi-kunlun/packages/kunlun-ternary",
+    "@kunlun/contradiction": "file:/root/pi-kunlun/packages/kunlun-contradiction",
+    "@kunlun/eventbus": "file:/root/pi-kunlun/packages/kunlun-eventbus",
+    "@kunlun/presence": "file:/root/pi-kunlun/packages/kunlun-presence",
+    "@kunlun/spiral": "file:/root/pi-kunlun/packages/kunlun-spiral",
+    "@kunlun/pw": "file:/root/pi-kunlun/packages/kunlun-pw",
+    "@kunlun/ocgs": "file:/root/pi-kunlun/packages/kunlun-ocgs",
+    "@kunlun/subsystems": "file:/root/pi-kunlun/packages/kunlun-subsystems"
+  },
+  "peerDependencies": {
+    "typebox": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*"
+  }
+}

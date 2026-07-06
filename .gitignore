@@ -33,3 +33,19 @@ pnpm-debug.log*
 # Temporary files
 temp/
 tmp/
+
+# 数据库
+extension/kunlun-memory.db
+
+# 日志
+extension/logs/
+
+# 导出
+extension/exports/
+
+# 构建产物
+fork/packages/agent/dist/
+**/dist/
+
+# 测试临时文件
+*.test-tmp-*

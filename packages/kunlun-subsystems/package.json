@@ -45,21 +45,22 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node /root/pi-kunlun/scripts/fix-esm-imports.mjs ./dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@kunlun/ternary": "workspace:*",
     "@kunlun/contradiction": "workspace:*",
     "@kunlun/eventbus": "workspace:*",
-    "@kunlun/presence": "workspace:*"
+    "@kunlun/presence": "workspace:*",
+    "@kunlun/ternary": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "@vitest/coverage-v8": "^2.0.0"
+    "vitest": "^2.0.0"
   }
 }

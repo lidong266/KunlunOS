@@ -458,11 +458,11 @@ class ContradictionEngineImpl implements ContradictionEngine {
 
     // 六维信度向量
     const vector: Tryte = [
-      aspect ? ((aspect.thesis.internalConsistency + aspect.antithesis.internalConsistency) / 2 >= 0.7 ? 1 : (aspect.thesis.internalConsistency + aspect.antithesis.internalConsistency) / 2 >= 0.4 ? 0 : -1) : 0,
-      unity?.confidence ?? 0,
-      typeof qualitative?.expectedNewQuality === 'string' && qualitative.expectedNewQuality !== '未知' ? 1 : 0,
-      negation?.isSpiralAscension ? 1 : 0,
-      transformation ? (transformation.inevitability === 1 ? 1 : 0) : 0,
+      aspect ? ((aspect.thesis.internalConsistency + aspect.antithesis.internalConsistency) / 2 >= 0.7 ? 1 as Trit : (aspect.thesis.internalConsistency + aspect.antithesis.internalConsistency) / 2 >= 0.4 ? 0 as Trit : -1 as Trit) : 0 as Trit,
+      (unity?.confidence ?? 0) as Trit,
+      (typeof qualitative?.expectedNewQuality === 'string' && qualitative.expectedNewQuality !== '未知' ? 1 : 0) as Trit,
+      (negation?.isSpiralAscension ? 1 : 0) as Trit,
+      (transformation ? (transformation.inevitability === 1 ? 1 : 0) : 0) as Trit,
       trit,
     ];
 

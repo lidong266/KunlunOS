@@ -636,77 +636,168 @@ describe('镇熵 Zhenshang (S12)', () => {
 // ══════════════════════════════════
 describe('玄关 Xuanguan (S13)', () => {
   let gw: MCPGateway;
-  beforeEach(() => { gw = new MCPGateway(); });
+  beforeEach(() => { gw = new MCPGateway({ autoDiscover: false }); });
 
-  it('注册工具', () => {
-    const t = gw.registerTool('search', '搜索', MCPToolType.RESOURCE, {});
-    expect(t.name).toBe('search');
-    expect(t.type).toBe(MCPToolType.RESOURCE);
-  });
-
-  it('列出工具', () => {
-    gw.registerTool('t1', 'd1', MCPToolType.RESOURCE, {});
-    gw.registerTool('t2', 'd2', MCPToolType.ACTION, {});
-    expect(gw.listTools()).toHaveLength(2);
-  });
-
-  it('按安全标记过滤', () => {
-    gw.registerTool('safe', 'd', MCPToolType.RESOURCE, {}, T_TRUE);
-    gw.registerTool('blocked', 'd', MCPToolType.ACTION, {}, T_FALSE);
-    expect(gw.listToolsBySecurity(T_TRUE)).toHaveLength(1);
-    expect(gw.listToolsBySecurity(T_FALSE)).toHaveLength(1);
-  });
-
-  it('注销工具', () => {
-    gw.registerTool('t', 'd', MCPToolType.RESOURCE, {});
-    expect(gw.unregisterTool('t')).toBe(true);
-    expect(gw.getTool('t')).toBeUndefined();
-  });
-
-  it('调用工具', async () => {
-    gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
-    const result = await gw.callTool({
-      toolName: 'echo', callId: '1', arguments: { text: 'hello' },
+  describe('本地工具注册', () => {
+    it('注册工具', () => {
+      const t = gw.registerTool('search', '搜索', MCPToolType.RESOURCE, {});
+      expect(t.name).toBe('search');
+      expect(t.type).toBe(MCPToolType.RESOURCE);
     });
-    expect(result.status).toBe(T_TRUE);
-    expect(result.data).toBeDefined();
-  });
 
-  it('调用不存在的工具', async () => {
-    const result = await gw.callTool({
-      toolName: 'nonexistent', callId: '1', arguments: {},
+    it('列出工具', () => {
+      gw.registerTool('t1', 'd1', MCPToolType.RESOURCE, {});
+      gw.registerTool('t2', 'd2', MCPToolType.ACTION, {});
+      expect(gw.listTools()).toHaveLength(2);
     });
-    expect(result.status).toBe(T_FALSE);
-    expect(result.error).toContain('not found');
-  });
 
-  it('调用被安全阻断的工具', async () => {
-    gw.registerTool('blocked', 'd', MCPToolType.ACTION, {}, T_FALSE);
-    const result = await gw.callTool({
-      toolName: 'blocked', callId: '1', arguments: {},
+    it('按安全标记过滤', () => {
+      gw.registerTool('safe', 'd', MCPToolType.RESOURCE, {}, T_TRUE);
+      gw.registerTool('blocked', 'd', MCPToolType.ACTION, {}, T_FALSE);
+      expect(gw.listToolsBySecurity(T_TRUE)).toHaveLength(1);
+      expect(gw.listToolsBySecurity(T_FALSE)).toHaveLength(1);
     });
-    expect(result.status).toBe(T_FALSE);
-    expect(result.error).toContain('blocked');
+
+    it('注销工具', () => {
+      gw.registerTool('t', 'd', MCPToolType.RESOURCE, {});
+      expect(gw.unregisterTool('t')).toBe(true);
+      expect(gw.getTool('t')).toBeUndefined();
+    });
+
+    it('调用工具（本地执行）', async () => {
+      gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
+      const result = await gw.callTool({
+        toolName: 'echo', callId: '1', arguments: { text: 'hello' },
+      });
+      expect(result.status).toBe(T_TRUE);
+      expect(result.data).toBeDefined();
+      expect((result.data as Record<string, unknown>).source).toBe('local');
+    });
+
+    it('调用不存在的工具', async () => {
+      const result = await gw.callTool({
+        toolName: 'nonexistent', callId: '1', arguments: {},
+      });
+      expect(result.status).toBe(T_FALSE);
+      expect(result.error).toContain('not found');
+    });
+
+    it('调用被安全阻断的工具', async () => {
+      gw.registerTool('blocked', 'd', MCPToolType.ACTION, {}, T_FALSE);
+      const result = await gw.callTool({
+        toolName: 'blocked', callId: '1', arguments: {},
+      });
+      expect(result.status).toBe(T_FALSE);
+      expect(result.error).toContain('blocked');
+    });
+
+    it('getCallHistory', async () => {
+      gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
+      await gw.callTool({ toolName: 'echo', callId: '1', arguments: {} });
+      expect(gw.getCallHistory()).toHaveLength(1);
+    });
+
+    it('getStats', async () => {
+      gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
+      await gw.callTool({ toolName: 'echo', callId: '1', arguments: {} });
+      const s = gw.getStats();
+      expect(s.registeredTools).toBe(1);
+      expect(s.totalCalls).toBe(1);
+    });
+
+    it('reset 清空本地状态', () => {
+      gw.registerTool('t', 'd', MCPToolType.RESOURCE, {});
+      gw.reset();
+      expect(gw.listTools()).toHaveLength(0);
+      expect(gw.getCallHistory()).toHaveLength(0);
+    });
   });
 
-  it('getCallHistory', async () => {
-    gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
-    await gw.callTool({ toolName: 'echo', callId: '1', arguments: {} });
-    expect(gw.getCallHistory()).toHaveLength(1);
-  });
+  describe('MCP Server 管理', () => {
+    it('初始无外部 MCP Server', () => {
+      const servers = gw.listServers();
+      expect(servers).toHaveLength(0);
+    });
 
-  it('getStats', async () => {
-    gw.registerTool('echo', 'echo', MCPToolType.RESOURCE, {});
-    await gw.callTool({ toolName: 'echo', callId: '1', arguments: {} });
-    const s = gw.getStats();
-    expect(s.registeredTools).toBe(1);
-    expect(s.totalCalls).toBe(1);
-  });
+    it('getStats 包含服务器信息', () => {
+      const s = gw.getStats();
+      expect(s.connectedServers).toBe(0);
+      expect(s.totalServers).toBe(0);
+    });
 
-  it('reset', () => {
-    gw.registerTool('t', 'd', MCPToolType.RESOURCE, {});
-    gw.reset();
-    expect(gw.listTools()).toHaveLength(0);
-    expect(gw.getCallHistory()).toHaveLength(0);
+    it('discoverServers 返回可发现的服务器数量', async () => {
+      // 环境中通常没有 MCP Server，期望 0
+      const count = await gw.discoverServers();
+      expect(typeof count).toBe('number');
+    });
+
+    it('registeredTool 带 pluginId 标识来源', () => {
+      gw.registerTool('ext_tool', '外部工具', MCPToolType.SERVICE, {}, T_UNKNOWN, 'my-server');
+      const t = gw.getTool('ext_tool');
+      expect(t?.pluginId).toBe('my-server');
+    });
+
+    it('syncExternalTools 不影响无连接的 server', () => {
+      // 无外部 MCP server 连接时，同步应该无害
+      expect(() => gw.syncExternalTools()).not.toThrow();
+    });
+
+    it('fullReset 清空全部状态', async () => {
+      gw.registerTool('t', 'd', MCPToolType.RESOURCE, {});
+      await gw.fullReset();
+      expect(gw.listTools()).toHaveLength(0);
+      expect(gw.getCallHistory()).toHaveLength(0);
+      expect(gw.listServers()).toHaveLength(0);
+    });
+
+    it('removeServer 对不存在的 server 返回 false', async () => {
+      const result = await gw.removeServer('nonexistent');
+      expect(result).toBe(false);
+    });
+  });
+});
+
+// ══════════════════════════════════
+// S13.b: MCP 客户端
+// ══════════════════════════════════
+describe('MCP 客户端 (MCPClient)', () => {
+  describe('MCPClientPool', () => {
+    let pool: import('../src/xuanguan/mcp-client.js').MCPClientPool;
+
+    beforeEach(async () => {
+      const { MCPClientPool: MCPPool } = await import('../src/xuanguan/mcp-client.js');
+      pool = new MCPPool();
+    });
+
+    it('初始状态为空', () => {
+      expect(pool.getAll()).toHaveLength(0);
+      expect(pool.getConnected()).toHaveLength(0);
+    });
+
+    it('getAllTools 返回空 Map', () => {
+      const tools = pool.getAllTools();
+      expect(tools.size).toBe(0);
+    });
+
+    it('pingAll 无服务器时返回空 Map', async () => {
+      const results = await pool.pingAll();
+      expect(results.size).toBe(0);
+    });
+
+    it('callTool 对未注册的 server 抛错', async () => {
+      await expect(pool.callTool('unknown', 'test', {})).rejects.toThrow('not found');
+    });
+
+    it('disconnectAll 空池无害', async () => {
+      await expect(pool.disconnectAll()).resolves.toBeUndefined();
+    });
+
+    it('重复注册抛错', async () => {
+      await pool.register({ command: 'echo', name: 'test-server' });
+      await expect(
+        pool.register({ command: 'echo', name: 'test-server' }),
+      ).rejects.toThrow('already registered');
+      await pool.disconnectAll();
+    });
   });
 });

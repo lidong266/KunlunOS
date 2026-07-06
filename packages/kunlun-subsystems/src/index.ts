@@ -121,4 +121,37 @@ export type {
   MCPToolCall,
   MCPToolResult,
   GatewayConfig,
+  RegisteredMCServer,
 } from './xuanguan/index.js';
+
+// MCP 客户端
+export {
+  MCPClientPool,
+  MCPClient,
+} from './xuanguan/mcp-client.js';
+export type {
+  MCPServerConfig,
+  MCPTool as MCPExternalTool,
+  MCPInitResult,
+  MCPServerStatus,
+} from './xuanguan/mcp-client.js';
+
+// OpenClaw 插件管理
+export {
+  OpenClawPluginManager,
+  OpenClawPluginScanner,
+  checkGateway,
+  setupGateway,
+  startGateway,
+  installPlugin,
+  addWeChatChannel,
+  listPlugins,
+} from './xuanguan/openclaw.js';
+export type {
+  OpenClawPluginDef,
+  OpenClawPluginEntry,
+  OpenClawPluginRuntime,
+  OpenClawConfig,
+  OpenClawEcosystemConfig,
+  ScanResult as OpenClawScanResult,
+} from './xuanguan/openclaw.js';
