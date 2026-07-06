@@ -153,8 +153,18 @@ export class MultiKernelOrchestrator {
         const result = await worker.harness.prompt(enhancedPrompt);
         const analysis = worker.getLatestAnalysis();
 
+        // 发布 Worker 洞察到共享层，供后续Worker/Reduce复用
+        const resultText = extractText(result);
+        this.shared.publishWorkerResult({
+          workerId: `worker-${index}`,
+          query: task.prompt,
+          summary: resultText.slice(0, 200),
+          keyFindings: extractKeyFindings(resultText, 3),
+          timestamp: Date.now(),
+        });
+
         const sr: SubTaskResult = { taskId: task.id, result, analysis: analysis ?? undefined };
-        collector.collect(index, extractText(result));
+        collector.collect(index, resultText);
         return sr;
       })
     );
@@ -165,9 +175,15 @@ export class MultiKernelOrchestrator {
       .map((text, i) => `### 子任务${i + 1}: ${subTasks[i]!.prompt}\n${text}`)
       .join('\n\n');
 
+    // 注入共享洞察：获取与本查询相关的先完成 Worker 的关键发现
+    const relatedInsights = this.shared.getSharedInsights(query, 3);
+    const insightsText = relatedInsights.length > 0
+      ? `\n\n---\n跨 Worker 共享洞察（其他并行执行的结果）:\n${relatedInsights.map((ins, i) => `[${ins.workerId}] ${ins.summary}`).join('\n')}\n---\n`
+      : '';
+
     const reduceInput = reducePrompt
-      ? `${reducePrompt}\n\n${subResultsText}`
-      : `以下是 ${subResults.length} 个子任务的分析结果，请综合这些结果给出最终回答。\n\n原始问题: ${query}\n\n${subResultsText}`;
+      ? `${reducePrompt}\n\n${insightsText}${subResultsText}`
+      : `以下是 ${subResults.length} 个子任务的分析结果，请综合这些结果给出最终回答。\n\n原始问题: ${query}\n${insightsText}\n${subResultsText}`;
 
     const finalReply = await this.main.harness.prompt(reduceInput);
 
@@ -365,4 +381,20 @@ function extractText(msg: AssistantMessage): string {
       .join('\n');
   }
   return JSON.stringify(content);
+}
+
+/** 从文本中提取关键发现（句式拆分） */
+function extractKeyFindings(text: string, maxCount = 3): string[] {
+  const lines = text
+    .split(/[。！？\n]/)
+    .map(l => l.trim())
+    .filter(l => l.length > 15 && l.length < 200);
+
+  // 优先取包含"关键"、"核心"、"重要"、"发现"、"结论"的行
+  const priority = lines.filter(l =>
+    /关键|核心|重要|发现|结论|总结|本质/.test(l)
+  );
+  const rest = lines.filter(l => !/关键|核心|重要|发现|结论|总结|本质/.test(l));
+
+  return [...priority, ...rest].slice(0, maxCount);
 }

@@ -63,7 +63,7 @@ describe('多Pi架构效率测试', () => {
       expect(miss).toBeNull();
 
       const stats = layer.llmCache.getStats();
-      console.log(`  缓存条目: ${stats.entries}, 命中: ${stats.totalHits}`);
+      console.log(`  缓存条目: ${stats.entries}, 命中: ${stats.hits}`);
     });
   });
 
@@ -191,7 +191,8 @@ describe('多Pi架构效率测试', () => {
       // 模拟一次完整 deepAnalyze 的资源使用
       shared.cacheAnalysis('测试问题', { summary: 's' } as any);
       shared.cacheResponse('prompt1', 'resp1', 500);
-      shared.cacheResponse('prompt1', 'resp1', 500); // 命中
+      const cached = shared.getCachedResponse('prompt1'); // 真正取缓存 → 命中+1
+      expect(cached).toBe('resp1');
       shared.writeMemory('分析记忆');
 
       const stats = shared.getStats();
@@ -199,14 +200,15 @@ describe('多Pi架构效率测试', () => {
       console.log('\n═══════════════════════════════════════');
       console.log('  昆仑OS 多Pi架构效率报告');
       console.log('═══════════════════════════════════════');
-      console.log(`  Token池: LLM=${stats.tokens.llm.used}/${stats.tokens.llm.total} | 缓存=${stats.tokens.cache.used}/${stats.tokens.cache.total}`);
-      console.log(`  LLM缓存: ${stats.cache.entries}条目 | ${stats.cache.totalHits}次命中`);
+      console.log(`  Token池: llm=${stats.tokens.llm.used ?? 0}/${stats.tokens.llm.total ?? 0} | cache=${stats.tokens.cache.used ?? 0}/${stats.tokens.cache.total ?? 0}`);
+      console.log(`  LLM缓存: ${stats.llmCache.entries}条目 | ${stats.llmCache.hits}次命中 | 命中率${stats.llmCache.hitRate}%`);
       console.log(`  记忆条目: ${stats.memories}`);
-      console.log(`  分析缓存: ${stats.analysisCache}`);
+      console.log(`  分析缓存: ${stats.analysisCache} | 命中率${stats.analysisHitRate}% | 模糊命中${stats.analysisFuzzyHits}`);
+      console.log(`  Worker洞察: ${stats.sharedInsights}条`);
       console.log(`  工具去重: ${dedup.getStats().pendingCalls}进行中 | ${dedup.getStats().cachedResults}已缓存`);
       console.log('═══════════════════════════════════════');
 
-      expect(stats.cache.totalHits).toBeGreaterThanOrEqual(1);
+      expect(stats.llmCache.hits).toBeGreaterThanOrEqual(1);
       expect(stats.analysisCache).toBeGreaterThanOrEqual(1);
       expect(stats.memories).toBeGreaterThanOrEqual(1);
     });
