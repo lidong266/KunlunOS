@@ -22,6 +22,14 @@ pnpm test          # 853 tests, 35 files
 pnpm -r build      # 22 packages
 ```
 
+### 运行 Demo（无需 LLM API）
+
+```bash
+npx tsx demo/contradiction-demo.ts
+```
+
+演示矛盾分析引擎的完整管线：输入真实矛盾场景 → 8 个分析器逐对分析 → 输出结构化结果（统一性/主导方面/质变临界/否定之否定/转化预测）。
+
 ### 运行 CLI
 
 ```bash

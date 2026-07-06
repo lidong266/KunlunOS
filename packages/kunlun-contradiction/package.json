@@ -23,10 +23,5 @@
     "@kunlun/ternary": "workspace:*",
     "@kunlun/eventbus": "workspace:*",
     "@kunlun/presence": "workspace:*"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "@vitest/coverage-v8": "^2.0.0"
   }
 }

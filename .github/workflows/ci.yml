@@ -8,7 +8,7 @@ on:
 
 jobs:
   monorepo:
-    name: Monorepo — 8 packages
+    name: Monorepo — 20 packages
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,10 +38,15 @@ jobs:
         run: |
           for pkg in packages/kunlun-*/; do
             name=$(basename "$pkg")
-            if [ -f "$pkg/dist/index.js" ]; then
+            # kunlun-os-core 使用 tsc --noEmit（仅类型检查，不产出 dist）
+            if [ "$name" = "kunlun-os-core" ]; then
+              echo "⏭️  $name (type-check only, no dist)"
+              continue
+            fi
+            if [ -f "$pkg/dist/index.js" ] || [ -f "$pkg/dist/index.d.ts" ]; then
               echo "✅ $name built"
             else
-              echo "❌ $name MISSING dist/index.js"
+              echo "❌ $name MISSING dist output"
               exit 1
             fi
           done
@@ -49,7 +54,7 @@ jobs:
       - name: Run unit tests
         run: pnpm -r test
 
-      - name: Run integration tests (90 tests)
+      - name: Run integration tests
         run: pnpm vitest run integration-tests --config integration-tests/vitest.config.ts
 
       - name: Summary
@@ -119,7 +124,7 @@ jobs:
             }).catch(e => { console.error('❌ Import failed:', e.message); process.exit(1); });
           "
 
-      - name: Run kunlun-bridge tests (19 tests)
+      - name: Run kunlun-bridge tests
         run: npx vitest run test/kunlun-bridge.test.ts
 
   extension:

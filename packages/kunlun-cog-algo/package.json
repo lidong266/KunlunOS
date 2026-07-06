@@ -23,9 +23,5 @@
     "@kunlun/spiral": "workspace:*",
     "@kunlun/pw": "workspace:*",
     "@kunlun/ocgs": "workspace:*"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.0",
-    "vitest": "^2.1.9"
   }
 }

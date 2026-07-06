@@ -2,12 +2,34 @@
   "name": "pi-kunlun",
   "version": "0.8.9",
   "private": true,
-  "description": "Pi-昆仑 V2 — 三进制认知基础设施",
+  "description": "Pi-Kunlun V2 — 三进制认知基础设施",
+  "keywords": [
+    "ai-agent",
+    "multi-agent",
+    "ternary-logic",
+    "cognitive-architecture",
+    "llm",
+    "agent-framework",
+    "monorepo",
+    "typescript"
+  ],
+  "author": "lidong266",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lidong266/pi-kunlun.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lidong266/pi-kunlun/issues"
+  },
+  "homepage": "https://github.com/lidong266/pi-kunlun#readme",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
-    "lint": "pnpm -r lint",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write \"packages/**/*.ts\" \"fork/packages/agent/src/**/*.ts\"",
     "clean": "pnpm -r clean"
   },
   "engines": {
@@ -15,7 +37,13 @@
   },
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "2.1.9",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0",
     "vitest": "2.1.9"
   }
 }
