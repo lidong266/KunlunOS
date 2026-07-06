@@ -18,11 +18,18 @@
  *   KUNLUN_API_KEY=sk-xxx npx tsx packages/kunlun-os-core/bin/kunlun.mjs
  *
  * 环境变量（仅 LLM 模式需要）:
- *   KUNLUN_MODEL_PROVIDER  — LLM provider (默认: openai)
- *   KUNLUN_MODEL_ID        — 模型 ID (默认: gpt-4o)
- *   KUNLUN_API_KEY         — API Key
+ *   KUNLUN_MODEL_PROVIDER  — LLM provider，必须是已注册 provider（默认: openai）
+ *                             可选值如: openai / deepseek / anthropic / google / groq / xai ...
+ *   KUNLUN_MODEL_ID        — 模型 ID，须属于上述 provider（默认: gpt-4o）
+ *   KUNLUN_API_KEY         — API Key（会自动映射为对应 provider 的 *_API_KEY）
  *   KUNLUN_API_BASE_URL    — API Base URL (可选)
  *   KUNLUN_SYSTEM_PROMPT   — 系统提示词 (可选)
+ *
+ * 示例（DeepSeek）:
+ *   export KUNLUN_API_KEY=sk-xxx
+ *   export KUNLUN_MODEL_PROVIDER=deepseek
+ *   export KUNLUN_MODEL_ID=deepseek-v4-flash
+ *   npx tsx packages/kunlun-os-core/bin/kunlun.mjs
  */
 
 // 离线认知命令集（无需 LLM API Key）
@@ -62,25 +69,38 @@ async function main() {
   }
 
   // ── LLM 交互模式（动态加载，需要 pi-agent-core）──
-  const { createProvider } = await import('@earendil-works/pi-ai');
+  // pi-ai 0.80.x：根入口不导出 builtinModels，需从 providers/all 子路径导入
+  const piAi = await import('@earendil-works/pi-ai/providers/all');
   const { KunlunCLI } = await import('../src/cli.js');
 
-  const provider = process.env.KUNLUN_MODEL_PROVIDER || 'openai';
+  const provider = (process.env.KUNLUN_MODEL_PROVIDER || 'openai').toLowerCase();
   const modelId = process.env.KUNLUN_MODEL_ID || 'gpt-4o';
-  const baseUrl = process.env.KUNLUN_API_BASE_URL;
   const systemPrompt = process.env.KUNLUN_SYSTEM_PROMPT;
 
-  // 创建 provider
-  const models = createProvider({
-    provider,
-    apiKey,
-    baseUrl,
-  });
+  // pi-ai 0.80.x 通过 AuthContext.env() 解析各 provider 的 *_API_KEY。
+  // 把用户统一的 KUNLUN_API_KEY 映射到任意 *_API_KEY 查找，并支持自定义 base URL。
+  const authContext = {
+    env: (name) => {
+      if (/_API_KEY$/i.test(name)) return Promise.resolve(apiKey);
+      return Promise.resolve(process.env[name]);
+    },
+    fileExists: () => Promise.resolve(false),
+  };
 
-  const model = models.getModel(modelId);
+  // 注册表：内置全部 provider（openai / deepseek / anthropic / ...），
+  // 各 provider 的 key 通过上面的 authContext 统一注入。
+  const models = piAi.builtinModels({ authContext });
+
+  const model = models.getModel(provider, modelId);
   if (!model) {
     console.error(`❌ 未找到模型: ${modelId} (provider: ${provider})`);
-    console.error(`   可用模型: ${models.listModels().map(m => m.id).join(', ')}`);
+    console.error(`   可用 provider: ${models.getProviders().map(p => p.id).join(', ')}`);
+    const builtin = piAi.getBuiltinModels(provider);
+    if (builtin.length) {
+      console.error(`   provider "${provider}" 可用模型: ${builtin.map(m => m.id).join(', ')}`);
+    } else {
+      console.error(`   提示: KUNLUN_MODEL_PROVIDER 必须是已注册的 provider（如 openai / deepseek / anthropic）`);
+    }
     process.exit(1);
   }
 
