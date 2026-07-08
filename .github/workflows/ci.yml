@@ -8,7 +8,7 @@ on:
 
 jobs:
   monorepo:
-    name: Monorepo — 20 packages
+    name: Monorepo — 9 packages (产品包) + fork + extension
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -54,11 +54,17 @@ jobs:
       - name: Run unit tests
         run: pnpm -r test
 
+      # 黄金测试条：固化核心包回归，避免个别包 vitest 配置异常导致静默漏测
+      # 指定包路径（而非根目录 `vitest run`）以规避无根配置时的混合扫描冲突
+      - name: Run core golden tests (kunlun-os-core, 109 tests)
+        run: npx vitest run packages/kunlun-os-core
+        continue-on-error: false
+
       - name: Run integration tests
         run: pnpm vitest run integration-tests --config integration-tests/vitest.config.ts
 
       - name: Summary
-        run: echo "✅ Monorepo: build + unit + integration tests passed"
+        run: echo "✅ Monorepo build + unit + integration tests passed"
 
   fork:
     name: Fork — pi-agent-core with ternary injection
@@ -197,4 +203,4 @@ jobs:
           "
 
       - name: Summary
-        run: echo "✅ All checks passed - monorepo + fork + extension"
+        run: echo "✅ All checks passed - monorepo, fork and extension"
