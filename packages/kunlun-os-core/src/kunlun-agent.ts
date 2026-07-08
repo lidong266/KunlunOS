@@ -58,6 +58,34 @@ import { registerKunlunEngine } from '@kunlun/pi-agent-core';
 import type { KunlunEngine } from '@kunlun/pi-agent-core';
 
 // ═══════════════════════════════════════════════════════════════
+// 对话模式路由 — 普通对话走职能 Pi，研讨开头走昆仑全链路
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 研讨模式触发词：用户消息以这些词开头即进入大成智慧学全链路
+ * （十一桥 → 量智×性智双轴 → 加权共识 → 天工渲染 → 人以为主裁决）。
+ * 否则走职能 Pi 纯净对话（不触发昆仑认知开销）。
+ */
+export const YANTA_TRIGGERS: readonly string[] = [
+  '研讨',
+  '研讨开头',
+  '研讨：',
+  '研讨:',
+  '研讨一下',
+  '开会研讨',
+];
+
+/**
+ * 判断一条用户文本是否带研讨意图（决定走全链路还是职能 Pi）。
+ * 只匹配“开头”，避免用户正文中出现“研讨”二字误触发。
+ */
+export function isYantaIntent(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  return YANTA_TRIGGERS.some((kw) => t.startsWith(kw));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // KunlunAgent 配置
 // ═══════════════════════════════════════════════════════════════
 
@@ -138,6 +166,29 @@ export class KunlunAgent<
     return this.os.getState();
   }
 
+  /**
+   * 统一对话入口 — 普通对话默认走职能 Pi，研讨开头自动走昆仑全链路。
+   *
+   * 调用方无需关心模式切换：引擎在每次 LLM 调用前会读取最新一条用户消息，
+   * 若以研讨触发词（见 YANTA_TRIGGERS）开头则注入大成智慧学认知，
+   * 否则走纯净的职能 Pi 对话。
+   *
+   * @example
+   * ```ts
+   * await agent.start();
+   * await agent.chat('你好，帮我写个函数');        // 职能 Pi
+   * await agent.chat('研讨开头：追求性能还是保证成本'); // 昆仑全链路
+   * ```
+   */
+  async chat(input: string, options?: { images?: import('@earendil-works/pi-ai').ImageContent[] }) {
+    return this.harness.prompt(input, options);
+  }
+
+  /** 判断输入是否会走昆仑全链路（供上层 UI/日志使用） */
+  willEnterYanta(input: string): boolean {
+    return isYantaIntent(input);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // 内部：注册为 KunlunEngine
   // ═══════════════════════════════════════════════════════════
@@ -149,6 +200,28 @@ export class KunlunAgent<
         if (!self.cognitionEnabled || !self.os.isRunning()) {
           return {
             summary: self.os.isRunning() ? '认知注入已禁用' : 'OS 未就绪',
+            contradictions: [],
+            promptInjection: '',
+            unifiability: 0,
+            dominantAspect: 0,
+            qualitativeState: -1,
+          };
+        }
+
+        // 对话模式路由：默认职能 Pi；仅当最新一条用户消息以研讨触发词开头时，
+        // 才进入昆仑全链路（十一桥→双轴→共识→天工→人以为主）。
+        const lastUser = [...context.messages].reverse().find(m => m.role === 'user');
+        const lastUserText = lastUser
+          ? (typeof lastUser.content === 'string'
+            ? lastUser.content
+            : Array.isArray(lastUser.content)
+              ? lastUser.content.map((c: any) => typeof c === 'string' ? c : c.text || '').join(' ')
+              : '')
+          : '';
+        if (!isYantaIntent(lastUserText)) {
+          // 职能 Pi 模式：轻量空分析，不触发昆仑认知开销
+          return {
+            summary: '职能Pi模式（非研讨）',
             contradictions: [],
             promptInjection: '',
             unifiability: 0,
