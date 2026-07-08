@@ -60,7 +60,7 @@ export type { BootResult } from './boot';
 export { BootAnimator } from './boot-animation';
 
 // ─── OS 主类 ───
-export { KunlunOS, getKunlunOS, bootKunlunOS } from './kunlun-os';
+export { KunlunOS, getKunlunOS, bootKunlunOS, runKunlunLoop } from './kunlun-os';
 export type {
   KunlunAnalysis,
   KunlunToolDecision,

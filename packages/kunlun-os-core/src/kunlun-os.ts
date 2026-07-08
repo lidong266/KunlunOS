@@ -873,3 +873,31 @@ export async function bootKunlunOS(config?: Partial<KunlunOSConfig>): Promise<Ku
   await os.start();
   return os;
 }
+
+/**
+ * runKunlunLoop — 一次性认知分析（对标 Pi 的 runAgentLoop 调用范式）
+ *
+ * 与 Pi 的 `runAgentLoop(prompt)` 体验对齐：一行调用、内部自管 OS 启动/停止，
+ * 无需用户手动 new + start + injectCognition + stop。
+ *
+ * 适用于"只想跑一次大成智慧学认知分析、不构造 AgentHarness/真实 LLM"的轻量场景。
+ * 若需把昆仑认知挂进 Pi 对话循环（自动随每次 prompt 注入），请用 KunlunAgent。
+ *
+ * @example
+ * ```ts
+ * const r = await runKunlunLoop('追求性能还是保证成本');
+ * console.log(r.synthesis, r.rendered, r.dualAxes);
+ * ```
+ */
+export async function runKunlunLoop(
+  query: string,
+  config?: Partial<KunlunOSConfig>,
+): Promise<KunlunAnalysis> {
+  const os = getKunlunOS(config);
+  await os.start();
+  try {
+    return await os.injectCognition([{ role: 'user', content: query }], '');
+  } finally {
+    os.stop();
+  }
+}
