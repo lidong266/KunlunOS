@@ -67,7 +67,7 @@ export type {
 } from './kunlun-os';
 
 // ─── Agent 封装（对外统一 API） ───
-export { KunlunAgent, getKunlunAgent, createKunlunAgent, YANTA_TRIGGERS, isYantaIntent } from './kunlun-agent';
+export { KunlunAgent, getKunlunAgent, createKunlunAgent, YANTA_TRIGGER, isYantaIntent } from './kunlun-agent';
 export type { KunlunAgentOptions } from './kunlun-agent';
 
 // ─── 多微内核调度器 ───
